@@ -1,0 +1,2372 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Census Tract Score</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17202a;
+      --muted: #667085;
+      --line: #d8dee8;
+      --panel: #ffffff;
+      --bg: #f4f7f9;
+      --blue: #2356d8;
+      --blue-dark: #183fa2;
+      --green: #1f8a5b;
+      --amber: #b7791f;
+      --red: #c24135;
+      --shadow: 0 18px 60px rgba(30, 41, 59, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: linear-gradient(180deg, #eef4fb 0, var(--bg) 280px);
+    }
+
+    main {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 34px 0 46px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 24px;
+      margin-bottom: 22px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 3.5rem);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 12px 0 0;
+      max-width: 650px;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.55;
+    }
+
+    .source-pill {
+      flex: 0 0 auto;
+      padding: 9px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.68);
+      color: #344054;
+      font-size: 0.84rem;
+    }
+
+    .search-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    form {
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) minmax(190px, 0.25fr) minmax(230px, 0.32fr) auto;
+      gap: 12px;
+      align-items: end;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 7px;
+      color: #344054;
+      font-size: 0.88rem;
+      font-weight: 650;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      min-height: 48px;
+      border: 1px solid #b8c2d2;
+      border-radius: 6px;
+      padding: 0 14px;
+      color: var(--ink);
+      font-size: 1rem;
+      outline: none;
+      background: #fff;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(35, 86, 216, 0.14);
+    }
+
+    .range-control {
+      min-height: 48px;
+      border: 1px solid #b8c2d2;
+      border-radius: 6px;
+      padding: 8px 12px;
+      background: #fff;
+    }
+
+    .autocomplete-host {
+      margin-top: 8px;
+    }
+
+    .autocomplete-host[hidden] {
+      display: none;
+    }
+
+    .autocomplete-host gmp-place-autocomplete {
+      display: block;
+      width: 100%;
+    }
+
+    .range-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: #344054;
+      font-size: 0.86rem;
+      font-weight: 700;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      margin: 9px 0 0;
+      accent-color: var(--blue);
+    }
+
+    button {
+      align-self: end;
+      min-height: 48px;
+      border: 0;
+      border-radius: 6px;
+      padding: 0 18px;
+      background: var(--blue);
+      color: #fff;
+      font-weight: 750;
+      font-size: 0.96rem;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: var(--blue-dark);
+    }
+
+    button:disabled {
+      cursor: wait;
+      opacity: 0.68;
+    }
+
+    .status {
+      min-height: 26px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .status.error {
+      color: var(--red);
+      font-weight: 650;
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: minmax(270px, 0.78fr) minmax(0, 1.22fr);
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+    }
+
+    .score-panel {
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+
+    .score-ring {
+      width: 198px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      margin: 4px auto 0;
+      border-radius: 50%;
+      background: conic-gradient(var(--blue) calc(var(--score, 0) * 1%), #e6ebf2 0);
+    }
+
+    .score-ring::before {
+      content: "";
+      position: absolute;
+    }
+
+    .score-inner {
+      width: 148px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: inset 0 0 0 1px #e8edf4;
+    }
+
+    .score-number {
+      font-size: 3rem;
+      font-weight: 850;
+      line-height: 1;
+    }
+
+    .score-label {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .grade {
+      display: inline-flex;
+      justify-self: center;
+      align-items: center;
+      min-height: 30px;
+      padding: 0 11px;
+      border-radius: 999px;
+      color: #fff;
+      background: var(--green);
+      font-weight: 750;
+      font-size: 0.86rem;
+    }
+
+    .meta-grid,
+    .metric-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .meta-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .metric-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-top: 12px;
+    }
+
+    .metric {
+      min-height: 104px;
+      border: 1px solid #e1e7ef;
+      border-radius: 8px;
+      padding: 13px;
+      background: #fbfcfe;
+    }
+
+    .map-wrap {
+      margin-top: 12px;
+      border: 1px solid #d8dee8;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #eef3f7;
+    }
+
+    .tract-map {
+      display: block;
+      width: 100%;
+      height: clamp(260px, 38vw, 420px);
+    }
+
+    .google-map {
+      display: none;
+      width: 100%;
+      height: clamp(320px, 45vw, 500px);
+    }
+
+    .ethnicity-list,
+    .age-list,
+    .race-list,
+    .restaurant-list,
+    .school-comparison-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .ethnicity-row,
+    .age-row,
+    .race-row {
+      display: grid;
+      grid-template-columns: minmax(120px, 0.34fr) 1fr minmax(70px, auto);
+      gap: 12px;
+      align-items: center;
+    }
+
+    .ethnicity-name,
+    .age-name,
+    .race-name {
+      color: #344054;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .ethnicity-value,
+    .age-value,
+    .race-value {
+      color: #344054;
+      font-size: 0.9rem;
+      font-weight: 750;
+      text-align: right;
+    }
+
+    .restaurant-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      padding: 12px 0;
+      border-top: 1px solid #edf1f6;
+    }
+
+    .restaurant-row:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .restaurant-name {
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .restaurant-address {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.35;
+    }
+
+    .rating {
+      white-space: nowrap;
+      color: #344054;
+      font-weight: 800;
+      text-align: right;
+    }
+
+    .restaurant-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .restaurant-links a {
+      color: var(--blue);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .restaurant-links a:hover {
+      text-decoration: underline;
+    }
+
+    .school-demographics,
+    .school-comparison-rows {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .school-demographic-row,
+    .school-comparison-row {
+      display: grid;
+      grid-template-columns: minmax(130px, 0.36fr) 1fr minmax(76px, auto);
+      gap: 10px;
+      align-items: center;
+    }
+
+    .school-demographic-label,
+    .school-comparison-label {
+      color: #344054;
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+
+    .school-demographic-value,
+    .school-comparison-value {
+      color: #344054;
+      font-size: 0.84rem;
+      font-weight: 750;
+      text-align: right;
+    }
+
+    .school-subnote {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+
+    .comparison-card {
+      padding: 14px 0;
+      border-top: 1px solid #edf1f6;
+    }
+
+    .comparison-card:first-child {
+      padding-top: 0;
+      border-top: 0;
+    }
+
+    .comparison-title {
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .comparison-meta {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .comparison-delta {
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .comparison-grid {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .comparison-grid-head,
+    .comparison-grid-row {
+      display: grid;
+      grid-template-columns: minmax(130px, 0.34fr) minmax(70px, auto) minmax(70px, auto) minmax(90px, auto);
+      gap: 12px;
+      align-items: center;
+    }
+
+    .comparison-grid-head {
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .comparison-grid-row {
+      padding: 10px 0;
+      border-top: 1px solid #edf1f6;
+    }
+
+    .comparison-grid-row:first-of-type {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .comparison-grid-label {
+      color: #344054;
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    .comparison-grid-value {
+      color: #344054;
+      font-size: 0.88rem;
+      font-weight: 750;
+      text-align: right;
+    }
+
+    .comparison-grid-delta {
+      display: inline-flex;
+      justify-content: center;
+      min-width: 84px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 800;
+      text-align: center;
+      background: #eef2f7;
+      color: #344054;
+    }
+
+    .comparison-grid-delta.positive {
+      background: rgba(31, 138, 91, 0.12);
+      color: var(--green);
+    }
+
+    .comparison-grid-delta.negative {
+      background: rgba(194, 65, 53, 0.12);
+      color: var(--red);
+    }
+
+    .comparison-summary {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.45;
+    }
+
+    .metric .name,
+    .meta .name {
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .metric .value {
+      margin-top: 9px;
+      font-size: 1.55rem;
+      font-weight: 800;
+      line-height: 1.05;
+    }
+
+    .metric .note,
+    .meta .value {
+      margin-top: 7px;
+      color: #475467;
+      line-height: 1.35;
+    }
+
+    .meta {
+      border-top: 1px solid #edf1f6;
+      padding-top: 12px;
+    }
+
+    .meta:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .calculator {
+      border-top: 1px solid #edf1f6;
+      padding-top: 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .calculator h3 {
+      margin: 0;
+      font-size: 0.98rem;
+    }
+
+    .calc-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .calc-field label {
+      display: block;
+      margin-bottom: 6px;
+      color: #344054;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .calc-field input {
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid #b8c2d2;
+      border-radius: 6px;
+      padding: 0 12px;
+      color: var(--ink);
+      font-size: 0.95rem;
+      background: #fff;
+    }
+
+    .calc-field input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(35, 86, 216, 0.14);
+      outline: none;
+    }
+
+    .calc-actions {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .calc-actions button {
+      width: 100%;
+      min-height: 42px;
+    }
+
+    .calc-output {
+      border: 1px solid #e1e7ef;
+      border-radius: 8px;
+      padding: 12px;
+      background: #fbfcfe;
+    }
+
+    .calc-output .name {
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .calc-output .value {
+      margin-top: 8px;
+      font-size: 1.4rem;
+      font-weight: 800;
+      line-height: 1.1;
+    }
+
+    .calc-output .note {
+      margin-top: 6px;
+      color: #475467;
+      font-size: 0.82rem;
+      line-height: 1.4;
+    }
+
+    .component-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .component {
+      display: grid;
+      gap: 7px;
+    }
+
+    .component-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: #344054;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .bar {
+      height: 9px;
+      border-radius: 999px;
+      background: #e6ebf2;
+      overflow: hidden;
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      width: calc(var(--value, 0) * 1%);
+      background: var(--blue);
+    }
+
+    .fine-print {
+      margin: 16px 0 0;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.5;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 820px) {
+      header,
+      .dashboard {
+        grid-template-columns: 1fr;
+      }
+
+      header {
+        display: grid;
+        align-items: start;
+      }
+
+      form,
+      .metric-grid,
+      .ethnicity-row,
+      .age-row,
+      .race-row,
+      .restaurant-row,
+      .school-demographic-row,
+      .school-comparison-row,
+      .comparison-grid-head,
+      .comparison-grid-row {
+        grid-template-columns: 1fr;
+      }
+
+      .rating {
+        text-align: left;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Census Tract Score</h1>
+        <p class="subtitle">Enter a U.S. address to find its Census tract, pull ACS profile data, and produce a simple 0-100 neighborhood opportunity score.</p>
+      </div>
+      <div class="source-pill">Census Geocoder + ACS 2024 5-year profile</div>
+    </header>
+
+    <section class="search-panel" aria-label="Address lookup">
+      <form id="lookup-form">
+        <div>
+          <label for="address">Address</label>
+          <input id="address" name="address" type="text" autocomplete="street-address" placeholder="1600 Pennsylvania Ave NW, Washington, DC" required>
+          <div id="google-address-autocomplete" class="autocomplete-host" hidden></div>
+        </div>
+        <div>
+          <label for="radius">Radius</label>
+          <div class="range-control">
+            <div class="range-top">
+              <span>Trade area</span>
+              <output id="radius-output" for="radius">1.0 mi</output>
+            </div>
+            <input id="radius" name="radius" type="range" min="0.1" max="5" value="1" step="0.1">
+          </div>
+        </div>
+        <div>
+          <label for="google-api-key">Google Maps API Key</label>
+          <input id="google-api-key" name="google-api-key" type="password" autocomplete="off" placeholder="Optional">
+        </div>
+        <button id="lookup-button" type="submit">Score Address</button>
+      </form>
+      <div id="status" class="status">Ready.</div>
+    </section>
+
+    <section id="results" class="dashboard hidden" aria-live="polite">
+      <aside class="panel score-panel">
+        <div class="score-ring" id="score-ring" style="--score: 0">
+          <div class="score-inner">
+            <div>
+              <div class="score-number" id="score-number">0</div>
+              <div class="score-label">Opportunity Score</div>
+            </div>
+          </div>
+        </div>
+        <div class="grade" id="score-grade">Needs Data</div>
+        <div class="meta-grid">
+          <div class="meta">
+            <div class="name">Matched Address</div>
+            <div class="value" id="matched-address">-</div>
+          </div>
+          <div class="meta">
+            <div class="name">Geography</div>
+            <div class="value" id="tract-id">-</div>
+          </div>
+          <div class="meta">
+            <div class="name">Radius</div>
+            <div class="value" id="radius-summary">-</div>
+          </div>
+          <div class="meta">
+            <div class="name">Coordinates</div>
+            <div class="value" id="coordinates">-</div>
+          </div>
+        </div>
+        <div class="calculator">
+          <h3>Revenue Estimator</h3>
+          <div class="calc-grid">
+            <div class="calc-field">
+              <label for="calc-households">Households</label>
+              <input id="calc-households" type="number" min="0" step="1" placeholder="Auto-filled from ACS">
+            </div>
+            <div class="calc-field">
+              <label for="calc-penetration">Penetration %</label>
+              <input id="calc-penetration" type="number" min="0" step="0.1" placeholder="e.g. 8">
+            </div>
+            <div class="calc-field">
+              <label for="calc-orders">Orders / Month</label>
+              <input id="calc-orders" type="number" min="0" step="0.1" placeholder="e.g. 2.5">
+            </div>
+            <div class="calc-field">
+              <label for="calc-aov">Average Order Value</label>
+              <input id="calc-aov" type="number" min="0" step="0.01" placeholder="e.g. 28">
+            </div>
+          </div>
+          <div class="calc-actions">
+            <button id="calc-button" type="button">Calculate Revenue</button>
+          </div>
+          <div class="calc-output">
+            <div class="name">Estimated Monthly Revenue</div>
+            <div class="value" id="calc-result">$0</div>
+            <div class="note" id="calc-note">Households x penetration x orders per month x average order value</div>
+          </div>
+        </div>
+      </aside>
+
+      <section class="panel">
+        <h2 style="margin: 0; font-size: 1.2rem;">Tract Map</h2>
+        <div class="map-wrap">
+          <div id="google-map" class="google-map" aria-label="Google map with selected tracts and restaurants"></div>
+          <svg id="tract-map" class="tract-map" viewBox="0 0 800 420" role="img" aria-label="Selected Census tracts map"></svg>
+        </div>
+        <p class="fine-print" id="map-note">Enter a Google Maps API key to show Google Maps, Chinese restaurant markers, and ratings. Without a key, this uses the built-in tract outline map.</p>
+
+        <h2 style="margin: 22px 0 0; font-size: 1.2rem;">Chinese Restaurants</h2>
+        <div class="restaurant-list" id="restaurant-list">
+          <div class="fine-print">Google Places results will appear here after you enter a Google Maps API key.</div>
+        </div>
+
+        <h2 style="margin: 22px 0 0; font-size: 1.2rem;">Schools</h2>
+        <div class="restaurant-list" id="school-list">
+          <div class="fine-print">Google Places school results will appear here after you enter a Google Maps API key.</div>
+        </div>
+        <p class="fine-print">School student demographics come from the official NYC Public Schools Demographic Snapshot for 2024-25. These categories are mutually exclusive, so Hispanic is a student category here and does not overlap with the other school rows.</p>
+
+        <h2 style="margin: 22px 0 0; font-size: 1.2rem;">School Comparison</h2>
+        <div class="school-comparison-list" id="school-comparison-list">
+          <div class="fine-print">Nearby school comparisons will appear here after schools are loaded.</div>
+        </div>
+        <p class="fine-print">Neighborhood comparison uses the average of the nearby NYC public schools shown above versus Census ACS mutually exclusive neighborhood categories: Hispanic, Black, Asian &amp; Pacific Islander, White, Native American, and Multi-Racial.</p>
+
+        <h2 style="margin: 22px 0 0; font-size: 1.2rem;">Ethnicity</h2>
+        <div class="ethnicity-list" id="ethnicity-list"></div>
+        <p class="fine-print">ACS ethnicity is Hispanic/Latino versus Not Hispanic/Latino. These categories sum to the total population.</p>
+
+        <h2 style="margin: 22px 0 0; font-size: 1.2rem;">Age</h2>
+        <div class="age-list" id="age-list"></div>
+        <p class="fine-print" id="age-note">Age mix uses ACS 2024 5-year age bands plus median age. Family-oriented age fit in the score targets a median age near 35 with strong 25-44 adults and households with children.</p>
+
+        <h2 style="margin: 22px 0 0; font-size: 1.2rem;">Race</h2>
+        <div class="race-list" id="race-list"></div>
+        <p class="fine-print">ACS race categories shown here are race-alone categories, plus Two or More Races. Hispanic/Latino is shown separately above as ethnicity.</p>
+
+        <h2 style="margin: 0; font-size: 1.2rem;">ACS Indicators</h2>
+        <div class="metric-grid" id="metrics"></div>
+
+        <h2 style="margin: 22px 0 0; font-size: 1.2rem;">Score Components</h2>
+        <div class="component-list" id="components"></div>
+
+        <p class="fine-print">The Restaurant Opportunity Score is a 0-100 directional screen for this Chinese restaurant concept. It combines demographic fit, target population density, and competition saturation. It is not a guarantee of restaurant performance.</p>
+      </section>
+    </section>
+  </main>
+
+  <script src="./nyc-public-schools.js"></script>
+  <script src="./nyc-school-demographics.js"></script>
+  <script>
+    const ACS_YEAR = "2024";
+    const ACS_DATASET = `https://api.census.gov/data/${ACS_YEAR}/acs/acs5/profile`;
+    const ACS_BASE_DATASET = `https://api.census.gov/data/${ACS_YEAR}/acs/acs5`;
+    const GEOCODER_URL = "https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress";
+    const TIGER_TRACTS_URL = "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Tracts_Blocks/MapServer/7/query";
+
+    const variables = [
+      { id: "DP05_0001E", label: "Population", format: "number" },
+      { id: "DP02_0001E", label: "Households", format: "number" },
+      { id: "DP03_0062E", label: "Median Household Income", format: "currency" },
+      { id: "DP05_0018E", label: "Median Age", format: "decimal1" },
+      { id: "DP03_0009PE", label: "Unemployment Rate", format: "percent" },
+      { id: "DP03_0128PE", label: "Poverty Rate", format: "percent" },
+      { id: "DP02_0068PE", label: "Bachelor's Degree or Higher", format: "percent" },
+      { id: "DP04_0002PE", label: "Occupied Housing Units", format: "percent" }
+    ];
+
+    const ethnicityCategories = [
+      { id: "DP05_0090E", label: "Hispanic / Latino", color: "#d17a22" },
+      { id: "DP05_0095E", label: "Not Hispanic / Latino", color: "#4976d0" }
+    ];
+
+    const raceCategories = [
+      { id: "DP05_0037E", label: "White", color: "#4976d0" },
+      { id: "DP05_0045E", label: "Black", color: "#2f9c72" },
+      { id: "DP05_0053E", label: "American Indian / Alaska Native", color: "#bf7d1a" },
+      { id: "DP05_0061E", label: "Asian", color: "#9a5cc8" },
+      { id: "DP05_0069E", label: "Native Hawaiian / Pacific Islander", color: "#1f8aa5" },
+      { id: "DP05_0074E", label: "Some Other Race", color: "#c75d5d" },
+      { id: "DP05_0075E", label: "Two or More Races", color: "#6b7280" }
+    ];
+
+    const schoolComparableCategories = [
+      { id: "hispanic", label: "Hispanic", color: "#d17a22", variableIds: ["B03002_012E"] },
+      { id: "black", label: "Black", color: "#2f9c72", variableIds: ["B03002_004E"] },
+      { id: "asian_pi", label: "Asian & Pacific Islander", color: "#9a5cc8", variableIds: ["B03002_006E", "B03002_007E"] },
+      { id: "white", label: "White", color: "#4976d0", variableIds: ["B03002_003E"] },
+      { id: "native", label: "Native American", color: "#bf7d1a", variableIds: ["B03002_005E"] },
+      { id: "multi", label: "Multi-Racial", color: "#6b7280", variableIds: ["B03002_009E"] }
+    ];
+
+    const ageCategories = [
+      { label: "Under 18", ids: ["DP05_0019E"], color: "#d17a22" },
+      { label: "18 to 24", ids: ["DP05_0008E", "DP05_0009E"], color: "#4976d0" },
+      { label: "25 to 34", ids: ["DP05_0010E"], color: "#2356d8" },
+      { label: "35 to 44", ids: ["DP05_0011E"], color: "#2f9c72" },
+      { label: "45 to 54", ids: ["DP05_0012E"], color: "#1f8aa5" },
+      { label: "55 to 64", ids: ["DP05_0013E", "DP05_0014E"], color: "#9a5cc8" },
+      { label: "65+", ids: ["DP05_0015E", "DP05_0016E", "DP05_0017E"], color: "#6b7280" }
+    ];
+
+    const supportVariableIds = [
+      "DP03_0005E",
+      "DP03_0008E",
+      "DP03_0127E",
+      "DP03_0128E",
+      "DP05_0008E",
+      "DP05_0009E",
+      "DP05_0010E",
+      "DP05_0011E",
+      "DP05_0012E",
+      "DP05_0013E",
+      "DP05_0014E",
+      "DP05_0015E",
+      "DP05_0016E",
+      "DP05_0017E",
+      "DP05_0018E",
+      "DP05_0019E",
+      "DP02_0001E",
+      "DP02_0014E",
+      "DP02_0014PE",
+      "DP02_0059E",
+      "DP02_0068E",
+      "DP04_0001E",
+      "DP04_0002E",
+      ...ethnicityCategories.map((category) => category.id),
+      ...raceCategories.map((category) => category.id)
+    ];
+    const schoolComparableVariableIds = [
+      "B03002_001E",
+      ...schoolComparableCategories.flatMap((category) => category.variableIds)
+    ];
+
+    const form = document.querySelector("#lookup-form");
+    const button = document.querySelector("#lookup-button");
+    const addressInput = document.querySelector("#address");
+    const addressAutocompleteHost = document.querySelector("#google-address-autocomplete");
+    const radiusInput = document.querySelector("#radius");
+    const radiusOutput = document.querySelector("#radius-output");
+    const googleApiKeyInput = document.querySelector("#google-api-key");
+    const statusEl = document.querySelector("#status");
+    const resultsEl = document.querySelector("#results");
+    const metricsEl = document.querySelector("#metrics");
+    const componentsEl = document.querySelector("#components");
+    const mapEl = document.querySelector("#tract-map");
+    const googleMapEl = document.querySelector("#google-map");
+    const mapNoteEl = document.querySelector("#map-note");
+    const calcHouseholdsEl = document.querySelector("#calc-households");
+    const calcPenetrationEl = document.querySelector("#calc-penetration");
+    const calcOrdersEl = document.querySelector("#calc-orders");
+    const calcAovEl = document.querySelector("#calc-aov");
+    const calcButtonEl = document.querySelector("#calc-button");
+    const calcResultEl = document.querySelector("#calc-result");
+    const calcNoteEl = document.querySelector("#calc-note");
+    const ethnicityListEl = document.querySelector("#ethnicity-list");
+    const ageListEl = document.querySelector("#age-list");
+    const raceListEl = document.querySelector("#race-list");
+    const restaurantListEl = document.querySelector("#restaurant-list");
+    const schoolListEl = document.querySelector("#school-list");
+    const schoolComparisonListEl = document.querySelector("#school-comparison-list");
+    let googleMapsPromise = null;
+    let googleMap = null;
+    let restaurantMarkers = [];
+    let schoolMarkers = [];
+    let addressAutocomplete = null;
+    const NYC_PUBLIC_SCHOOLS = Array.isArray(window.NYC_PUBLIC_SCHOOLS)
+      ? window.NYC_PUBLIC_SCHOOLS.map(normalizeOfficialSchool)
+      : [];
+    const NYC_SCHOOL_DEMOGRAPHICS = Array.isArray(window.NYC_SCHOOL_DEMOGRAPHICS)
+      ? window.NYC_SCHOOL_DEMOGRAPHICS.map(normalizeSchoolDemographics)
+      : [];
+    const schoolDemographicsByDbn = new Map(NYC_SCHOOL_DEMOGRAPHICS.map((item) => [item.dbn, item]));
+    const schoolDemographicsByNameKey = new Map(NYC_SCHOOL_DEMOGRAPHICS.map((item) => [item.nameKey, item]));
+
+    radiusInput.addEventListener("input", () => {
+      radiusOutput.value = `${Number(radiusInput.value).toFixed(1)} mi`;
+    });
+
+    calcButtonEl.addEventListener("click", () => {
+      updateRevenueEstimate();
+    });
+
+    googleApiKeyInput.addEventListener("change", () => {
+      enableAddressAutocomplete();
+    });
+
+    googleApiKeyInput.addEventListener("blur", () => {
+      enableAddressAutocomplete();
+    });
+
+    addressInput.addEventListener("focus", () => {
+      enableAddressAutocomplete();
+    });
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const formData = new FormData(form);
+      const address = (formData.get("address") || "").trim();
+      const googleApiKey = (formData.get("google-api-key") || "").trim();
+      const radius = Number(radiusInput.value);
+      if (!address) return;
+
+      setStatus("Finding Census tract...");
+      setLoading(true);
+
+      try {
+        const match = await geocodeAddress(address);
+        const tract = getTract(match);
+        if (!tract) {
+          throw new Error("The address matched, but no Census tract came back. Try a more complete address with city and state.");
+        }
+
+        const center = getCoordinates(match);
+        setStatus(`Finding tracts within ${radius.toFixed(1)} miles...`);
+        const nearbyTracts = await fetchNearbyTracts(center, radius, tract);
+
+        setStatus(`Pulling ACS data for ${nearbyTracts.length} tract${nearbyTracts.length === 1 ? "" : "s"}...`);
+        const acs = await fetchAcsDataForTracts(nearbyTracts);
+        await renderResults(match, tract, nearbyTracts, radius, acs, googleApiKey);
+        setStatus("Done.");
+      } catch (error) {
+        console.error(error);
+        setStatus(error.message || "Something went wrong.", true);
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    function geocodeAddress(address) {
+      return new Promise((resolve, reject) => {
+        const callbackName = `censusGeocoder_${Date.now()}_${Math.round(Math.random() * 100000)}`;
+        const params = new URLSearchParams({
+          address,
+          benchmark: "Public_AR_Current",
+          vintage: "Current_Current",
+          layers: "Census Tracts",
+          format: "jsonp",
+          callback: callbackName
+        });
+
+        const script = document.createElement("script");
+        const timer = window.setTimeout(() => cleanup(new Error("The Census geocoder timed out. Please try again.")), 12000);
+
+        window[callbackName] = (payload) => {
+          const matches = payload?.result?.addressMatches || [];
+          if (!matches.length) {
+            cleanup(new Error("No address match found. Try adding city, state, and ZIP."));
+            return;
+          }
+          cleanup(null, matches[0]);
+        };
+
+        script.onerror = () => cleanup(new Error("Could not reach the Census geocoder."));
+        script.src = `${GEOCODER_URL}?${params.toString()}`;
+        document.body.appendChild(script);
+
+        function cleanup(error, value) {
+          window.clearTimeout(timer);
+          delete window[callbackName];
+          script.remove();
+          if (error) reject(error);
+          else resolve(value);
+        }
+      });
+    }
+
+    function getTract(match) {
+      const tracts = match?.geographies?.["Census Tracts"];
+      if (!tracts || !tracts.length) return null;
+      const tract = tracts[0];
+      return {
+        state: tract.STATE,
+        county: tract.COUNTY,
+        tract: tract.TRACT,
+        geoid: tract.GEOID || `${tract.STATE}${tract.COUNTY}${tract.TRACT}`,
+        name: tract.NAME || tract.BASENAME || "Census Tract"
+      };
+    }
+
+    function getCoordinates(match) {
+      const x = Number(match?.coordinates?.x);
+      const y = Number(match?.coordinates?.y);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) {
+        throw new Error("The address matched, but no usable coordinates came back.");
+      }
+      return { x, y };
+    }
+
+    function addOverlapSharesToTracts(tracts, center, radius) {
+      return tracts.map((tract) => ({
+        ...tract,
+        overlapShare: estimateTractOverlapShare(tract, center, radius)
+      }));
+    }
+
+    function estimateTractOverlapShare(tract, center, radiusMiles) {
+      const rings = tract?.geometry?.rings || [];
+      const points = rings.flat();
+      if (!points.length) return 1;
+
+      const projectedRings = rings.map((ring) => ring.map(([lon, lat]) => projectToLocalMiles(lon, lat, center)));
+      const projectedPoints = projectedRings.flat();
+      if (!projectedPoints.length) return 1;
+
+      if (projectedPoints.every((point) => point.x * point.x + point.y * point.y <= radiusMiles * radiusMiles)) {
+        return 1;
+      }
+
+      const xs = projectedPoints.map((point) => point.x);
+      const ys = projectedPoints.map((point) => point.y);
+      const bbox = {
+        minX: Math.min(...xs),
+        maxX: Math.max(...xs),
+        minY: Math.min(...ys),
+        maxY: Math.max(...ys)
+      };
+
+      const sampleCols = 28;
+      const sampleRows = 28;
+      const width = Math.max(bbox.maxX - bbox.minX, 0.001);
+      const height = Math.max(bbox.maxY - bbox.minY, 0.001);
+      let polygonHits = 0;
+      let overlapHits = 0;
+
+      for (let row = 0; row < sampleRows; row += 1) {
+        for (let col = 0; col < sampleCols; col += 1) {
+          const x = bbox.minX + ((col + 0.5) / sampleCols) * width;
+          const y = bbox.minY + ((row + 0.5) / sampleRows) * height;
+          if (!pointInRings({ x, y }, projectedRings)) continue;
+          polygonHits += 1;
+          if (x * x + y * y <= radiusMiles * radiusMiles) {
+            overlapHits += 1;
+          }
+        }
+      }
+
+      if (!polygonHits) {
+        const centroid = projectedPoints.reduce((acc, point) => ({
+          x: acc.x + point.x / projectedPoints.length,
+          y: acc.y + point.y / projectedPoints.length
+        }), { x: 0, y: 0 });
+        return centroid.x * centroid.x + centroid.y * centroid.y <= radiusMiles * radiusMiles ? 1 : 0;
+      }
+
+      return clamp(overlapHits / polygonHits, 0, 1);
+    }
+
+    function projectToLocalMiles(lon, lat, center) {
+      const avgLatRadians = toRadians((Number(center.y) + Number(lat)) / 2);
+      return {
+        x: (Number(lon) - Number(center.x)) * 69.172 * Math.cos(avgLatRadians),
+        y: (Number(lat) - Number(center.y)) * 69.0
+      };
+    }
+
+    function pointInRings(point, rings) {
+      let inside = false;
+      rings.forEach((ring) => {
+        if (pointInRing(point, ring)) {
+          inside = !inside;
+        }
+      });
+      return inside;
+    }
+
+    function pointInRing(point, ring) {
+      let inside = false;
+      for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
+        const xi = ring[i].x;
+        const yi = ring[i].y;
+        const xj = ring[j].x;
+        const yj = ring[j].y;
+        const intersects = ((yi > point.y) !== (yj > point.y))
+          && (point.x < ((xj - xi) * (point.y - yi)) / ((yj - yi) || 1e-9) + xi);
+        if (intersects) inside = !inside;
+      }
+      return inside;
+    }
+
+    async function fetchNearbyTracts(center, radius, fallbackTract) {
+      const params = new URLSearchParams({
+        f: "json",
+        where: "1=1",
+        geometry: `${center.x},${center.y}`,
+        geometryType: "esriGeometryPoint",
+        inSR: "4326",
+        spatialRel: "esriSpatialRelIntersects",
+        distance: String(radius),
+        units: "esriSRUnit_StatuteMile",
+        outFields: "GEOID,STATE,COUNTY,TRACT,NAME,BASENAME",
+        returnGeometry: "true",
+        outSR: "4326"
+      });
+
+      const response = await fetch(`${TIGER_TRACTS_URL}?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error(`TIGERweb returned ${response.status}.`);
+      }
+
+      const payload = await response.json();
+      if (payload.error) {
+        throw new Error(payload.error.message || "TIGERweb could not return nearby tracts.");
+      }
+
+      const tracts = (payload.features || [])
+        .filter((feature) => feature.attributes)
+        .map((feature) => {
+          const attributes = feature.attributes;
+          return {
+          state: attributes.STATE,
+          county: attributes.COUNTY,
+          tract: attributes.TRACT,
+          geoid: attributes.GEOID || `${attributes.STATE}${attributes.COUNTY}${attributes.TRACT}`,
+          name: attributes.NAME || attributes.BASENAME || "Census Tract",
+          geometry: feature.geometry
+          };
+        })
+        .filter((item) => item.state && item.county && item.tract);
+
+      const deduped = new Map();
+      [fallbackTract, ...tracts].forEach((item) => {
+        deduped.set(`${item.state}${item.county}${item.tract}`, item);
+      });
+
+      return addOverlapSharesToTracts(Array.from(deduped.values()), center, radius);
+    }
+
+    async function fetchAcsDataForTracts(tracts) {
+      const [profileRows, comparableRows] = await Promise.all([
+        fetchDatasetRowsForTracts(ACS_DATASET, [...variables.map((variable) => variable.id), ...supportVariableIds], tracts),
+        fetchDatasetRowsForTracts(ACS_BASE_DATASET, schoolComparableVariableIds, tracts)
+      ]);
+
+      if (!profileRows.length) {
+        throw new Error("No ACS data found for the selected radius.");
+      }
+
+      return {
+        values: aggregateAcsRows(profileRows, comparableRows),
+        tractCount: profileRows.length
+      };
+    }
+
+    async function fetchDatasetRowsForTracts(datasetUrl, variableIds, tracts) {
+      const get = ["NAME", ...new Set(variableIds)].join(",");
+      const groups = groupTractsByCounty(tracts);
+      const rows = [];
+      const overlapShareByTract = new Map(
+        tracts.map((tract) => [`${tract.state}${tract.county}${tract.tract}`, tract.overlapShare ?? 1])
+      );
+
+      await Promise.all(Array.from(groups.entries()).map(async ([key, group]) => {
+        const [state, county] = key.split("-");
+        const url = `${datasetUrl}?get=${encodeURIComponent(get)}&for=tract:*&in=state:${state}%20county:${county}`;
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`ACS API returned ${response.status}.`);
+        }
+
+        const countyRows = await response.json();
+        if (!Array.isArray(countyRows) || countyRows.length < 2) return;
+
+        const headers = countyRows[0];
+        const allowed = new Set(group.map((tract) => tract.tract));
+        countyRows.slice(1).forEach((row) => {
+          const values = Object.fromEntries(headers.map((header, index) => [header, row[index]]));
+          if (allowed.has(values.tract)) {
+            values._overlapShare = overlapShareByTract.get(`${values.state}${values.county}${values.tract}`) ?? 1;
+            rows.push(values);
+          }
+        });
+      }));
+
+      return rows;
+    }
+
+    function groupTractsByCounty(tracts) {
+      return tracts.reduce((groups, tract) => {
+        const key = `${tract.state}-${tract.county}`;
+        const current = groups.get(key) || [];
+        current.push(tract);
+        groups.set(key, current);
+        return groups;
+      }, new Map());
+    }
+
+    function aggregateAcsRows(rows, comparableRows = []) {
+      const populationTotal = rows.reduce((total, row) => total + scaledValue(row, "DP05_0001E"), 0);
+      const values = {
+        NAME: `${rows.length} Census tract${rows.length === 1 ? "" : "s"}`,
+        DP05_0001E: String(populationTotal),
+        _methods: {
+          DP05_0001E: "tract overlap estimate within radius",
+          DP02_0001E: "tract overlap estimate within radius",
+          DP03_0062E: "population-weighted tract overlap estimate",
+          DP03_0009PE: "overlap-adjusted unemployed / labor force",
+          DP03_0128PE: "population-weighted tract overlap estimate",
+          DP05_0018E: "population-weighted tract overlap estimate",
+          DP02_0014PE: "overlap-adjusted households with children / total households",
+          DP02_0068PE: "overlap-adjusted degree count / age 25+ population",
+          DP04_0002PE: "overlap-adjusted occupied units / housing units"
+        }
+      };
+
+      values.DP02_0001E = nullableString(rows.reduce((total, row) => total + scaledValue(row, "DP02_0001E"), 0));
+      values.DP03_0062E = nullableString(weightedAverage(rows, "DP03_0062E", "DP05_0001E"));
+      values.DP05_0018E = nullableString(weightedAverage(rows, "DP05_0018E", "DP05_0001E"));
+      values.DP03_0009PE = nullableString(ratioPercent(rows, "DP03_0005E", "DP03_0008E"));
+      values.DP03_0128PE = nullableString(weightedAverage(rows, "DP03_0128PE", "DP05_0001E"));
+      values.DP02_0014PE = nullableString(ratioPercent(rows, "DP02_0014E", "DP02_0001E"));
+      values.DP02_0068PE = nullableString(ratioPercent(rows, "DP02_0068E", "DP02_0059E"));
+      values.DP04_0002PE = nullableString(ratioPercent(rows, "DP04_0002E", "DP04_0001E"));
+      values._age = ageCategories.map((category) => {
+        const count = rows.reduce((total, row) => total + category.ids.reduce((sum, id) => sum + scaledValue(row, id), 0), 0);
+        return {
+          ...category,
+          count,
+          percent: populationTotal ? (count / populationTotal) * 100 : null
+        };
+      });
+      values._ethnicity = ethnicityCategories.map((category) => {
+        const count = rows.reduce((total, row) => total + scaledValue(row, category.id), 0);
+        return {
+          ...category,
+          count,
+          percent: populationTotal ? (count / populationTotal) * 100 : null
+        };
+      });
+      values._race = raceCategories.map((category) => {
+        const count = rows.reduce((total, row) => total + scaledValue(row, category.id), 0);
+        return {
+          ...category,
+          count,
+          percent: populationTotal ? (count / populationTotal) * 100 : null
+        };
+      });
+      values._schoolComparable = aggregateComparableNeighborhoodRows(comparableRows);
+
+      return values;
+    }
+
+    function aggregateComparableNeighborhoodRows(rows) {
+      const populationTotal = rows.reduce((total, row) => total + scaledValue(row, "B03002_001E"), 0);
+      return schoolComparableCategories.map((category) => {
+        const count = rows.reduce((total, row) => total + category.variableIds.reduce((sum, variableId) => sum + scaledValue(row, variableId), 0), 0);
+        return {
+          id: category.id,
+          label: category.label,
+          color: category.color,
+          count,
+          percent: populationTotal ? (count / populationTotal) * 100 : null
+        };
+      });
+    }
+
+    function weightedAverage(rows, valueKey, weightKey) {
+      let weightedTotal = 0;
+      let weightTotal = 0;
+
+      rows.forEach((row) => {
+        const value = toNumber(row[valueKey]);
+        const weight = scaledValue(row, weightKey);
+        if (value === null || weight === null || weight <= 0) return;
+        weightedTotal += value * weight;
+        weightTotal += weight;
+      });
+
+      return weightTotal ? weightedTotal / weightTotal : null;
+    }
+
+    function ratioPercent(rows, numeratorKey, denominatorKey) {
+      let numerator = 0;
+      let denominator = 0;
+
+      rows.forEach((row) => {
+        const numeratorValue = scaledValue(row, numeratorKey);
+        const denominatorValue = scaledValue(row, denominatorKey);
+        if (numeratorValue === null || denominatorValue === null || denominatorValue <= 0) return;
+        numerator += numeratorValue;
+        denominator += denominatorValue;
+      });
+
+      return denominator ? (numerator / denominator) * 100 : null;
+    }
+
+    function nullableString(value) {
+      return value === null ? null : String(value);
+    }
+
+    function scaledValue(row, key) {
+      const value = toNumber(row[key]);
+      if (value === null) return 0;
+      const share = Number.isFinite(Number(row._overlapShare)) ? Number(row._overlapShare) : 1;
+      return value * clamp(share, 0, 1);
+    }
+
+    function calculateOpportunityScore(values, radius, restaurants) {
+      const population = toNumber(values.DP05_0001E) || 0;
+      const hispanic = getBreakdownPercent(values._ethnicity, "Hispanic / Latino");
+      const black = getBreakdownPercent(values._race, "Black");
+      const adults25to34 = getBreakdownPercent(values._age, "25 to 34");
+      const adults35to44 = getBreakdownPercent(values._age, "35 to 44");
+      const children = getBreakdownPercent(values._age, "Under 18");
+      const householdsWithKids = toNumber(values.DP02_0014PE) || 0;
+      const medianAge = toNumber(values.DP05_0018E);
+      const hasRestaurantData = Array.isArray(restaurants);
+      const restaurantCount = hasRestaurantData ? restaurants.length : 0;
+      const areaSqMiles = Math.PI * radius * radius;
+      const fitIndex = (hispanic * 0.65 + black * 0.35) / 100;
+      const targetPopulation = population * fitIndex;
+      const targetDensity = areaSqMiles ? targetPopulation / areaSqMiles : 0;
+      const targetPopulationPerRestaurant = hasRestaurantData
+        ? targetPopulation / Math.max(restaurantCount, 1)
+        : null;
+      const restaurantsPerTenKTarget = hasRestaurantData && targetPopulation
+        ? (restaurantCount / targetPopulation) * 10000
+        : null;
+
+      const demographicFit = normalize(hispanic * 0.65 + black * 0.35, 10, 45);
+      const ageFit = calculateAgeFitScore({
+        medianAge,
+        adults25to34,
+        adults35to44,
+        children,
+        householdsWithKids
+      });
+      const populationDensity = normalize(targetDensity, 4000, 35000) * 0.7
+        + (targetPopulationPerRestaurant === null ? 0 : normalize(targetPopulationPerRestaurant, 1000, 9000)) * 0.3;
+      const competitionSaturation = restaurantsPerTenKTarget === null
+        ? null
+        : 100 - normalize(restaurantsPerTenKTarget, 0.8, 8);
+
+      const components = [
+        {
+          label: "Demographic Fit",
+          weight: 0.30,
+          value: demographicFit,
+          detail: `${formatValue(hispanic, "percent")} Hispanic / Latino, ${formatValue(black, "percent")} Black`
+        },
+        {
+          label: "Age Fit",
+          weight: 0.25,
+          value: ageFit,
+          detail: `${formatValue(medianAge, "decimal1")} median age, ${formatValue(adults25to34 + adults35to44, "percent")} age 25-44, ${formatValue(householdsWithKids, "percent")} households with kids`
+        },
+        {
+          label: "Target Population Density",
+          weight: 0.25,
+          value: populationDensity,
+          detail: targetPopulationPerRestaurant === null
+            ? `${formatValue(targetDensity, "number")} fit-weighted people / sq mi; add Google key for restaurant-adjusted density`
+            : `${formatValue(targetDensity, "number")} fit-weighted people / sq mi, ${formatValue(targetPopulationPerRestaurant, "number")} per Chinese restaurant`
+        },
+        {
+          label: "Competition Saturation",
+          weight: 0.20,
+          value: competitionSaturation,
+          detail: restaurantCount
+            ? `${restaurantCount} Chinese restaurants, ${formatValue(restaurantsPerTenKTarget, "number")} per 10k fit-weighted people`
+            : "No Google restaurant count available"
+        }
+      ].map((component) => ({
+        ...component,
+        value: component.value === null ? null : clamp(component.value, 0, 100)
+      }));
+
+      const available = components.filter((component) => component.value !== null);
+      const availableWeight = available.reduce((total, component) => total + component.weight, 0);
+      const weighted = availableWeight
+        ? available.reduce((total, component) => total + component.value * component.weight, 0) / availableWeight
+        : 0;
+      const final = Math.round(clamp(weighted, 0, 100));
+      return { final, components };
+    }
+
+    function calculateAgeFitScore({ medianAge, adults25to34, adults35to44, children, householdsWithKids }) {
+      const targetAdultShare = adults25to34 + adults35to44;
+      const medianAgeScore = medianAge === null
+        ? null
+        : clamp(100 - Math.abs(medianAge - 35) * 5, 0, 100);
+      const adultShareScore = normalize(targetAdultShare, 18, 34);
+      const childrenScore = normalize(children, 14, 30);
+      const householdKidsScore = normalize(householdsWithKids, 22, 42);
+      const parts = [
+        { value: medianAgeScore, weight: 0.35 },
+        { value: adultShareScore, weight: 0.30 },
+        { value: childrenScore, weight: 0.15 },
+        { value: householdKidsScore, weight: 0.20 }
+      ].filter((part) => part.value !== null);
+      const totalWeight = parts.reduce((sum, part) => sum + part.weight, 0);
+      return totalWeight
+        ? clamp(parts.reduce((sum, part) => sum + part.value * part.weight, 0) / totalWeight, 0, 100)
+        : null;
+    }
+
+    function getBreakdownPercent(items, label) {
+      const item = (items || []).find((candidate) => candidate.label === label);
+      return item?.percent ?? 0;
+    }
+
+    async function renderResults(match, tract, nearbyTracts, radius, acs, googleApiKey) {
+      const coordinates = match.coordinates || {};
+      const values = acs.values;
+      let restaurants = null;
+      let schools = [];
+
+      document.querySelector("#matched-address").textContent = match.matchedAddress || "-";
+      document.querySelector("#tract-id").textContent = nearbyTracts.length === 1
+        ? `${tract.geoid} (${tract.name})`
+        : `${nearbyTracts.length} tracts near ${tract.geoid}`;
+      document.querySelector("#radius-summary").textContent = `${radius.toFixed(1)} mile${radius === 1 ? "" : "s"} from matched address`;
+      document.querySelector("#coordinates").textContent = coordinates.x && coordinates.y
+        ? `${Number(coordinates.y).toFixed(6)}, ${Number(coordinates.x).toFixed(6)}`
+        : "-";
+
+      renderFallbackTractMap(nearbyTracts, coordinates, radius);
+      renderEthnicityList(values._ethnicity || []);
+      renderAgeList(values._age || [], toNumber(values.DP05_0018E));
+      renderRaceList(values._race || []);
+      const households = toNumber(values.DP02_0001E);
+      if (households !== null) {
+        calcHouseholdsEl.value = Math.round(households);
+      }
+      updateRevenueEstimate();
+      if (googleApiKey) {
+        const googleResults = await renderGoogleMapRestaurantsAndSchools(nearbyTracts, coordinates, radius, googleApiKey);
+        restaurants = googleResults.restaurants;
+        schools = googleResults.schools;
+      } else {
+        showFallbackMap();
+        renderRestaurantPlaceholder("Enter a Google Maps API key, then score the address again to show Chinese restaurant labels and Google ratings.");
+        renderSchoolPlaceholder("Enter a Google Maps API key, then score the address again to show nearby schools.");
+        renderSchoolComparisonPlaceholder("Enter a Google Maps API key, then score the address again to compare nearby schools to the neighborhood.");
+      }
+
+      const score = calculateOpportunityScore(values, radius, restaurants, schools);
+
+      document.querySelector("#score-number").textContent = score.final;
+      document.querySelector("#score-ring").style.setProperty("--score", score.final);
+
+      const gradeEl = document.querySelector("#score-grade");
+      gradeEl.textContent = gradeForScore(score.final);
+      gradeEl.style.background = colorForScore(score.final);
+
+      metricsEl.innerHTML = variables.map((variable) => {
+        const raw = toNumber(values[variable.id]);
+        const method = values._methods?.[variable.id] || "aggregated";
+        return `
+          <article class="metric">
+            <div class="name">${escapeHtml(variable.label)}</div>
+            <div class="value">${escapeHtml(formatValue(raw, variable.format))}</div>
+            <div class="note">${escapeHtml(variable.id)} · ${acs.tractCount} tract${acs.tractCount === 1 ? "" : "s"} · ${escapeHtml(method)}</div>
+          </article>
+        `;
+      }).join("");
+
+      componentsEl.innerHTML = score.components.map((component) => `
+        <div class="component">
+          <div class="component-top">
+            <span>${escapeHtml(component.label)} <span style="color: var(--muted); font-weight: 600;">${Math.round(component.weight * 100)}%</span></span>
+            <span>${component.value === null ? "No data" : `${Math.round(component.value)}/100`}</span>
+          </div>
+          <div class="bar" style="--value: ${component.value === null ? 0 : component.value}">
+            <span></span>
+          </div>
+          <div class="score-label" style="text-align: left;">${escapeHtml(component.detail)}</div>
+        </div>
+      `).join("");
+
+      if (googleApiKey) {
+        renderSchoolComparison(values._schoolComparable || [], schools);
+      }
+
+      resultsEl.classList.remove("hidden");
+    }
+
+    function renderAgeList(items, medianAge) {
+      ageListEl.innerHTML = items.map((item) => `
+        <div class="age-row">
+          <div class="age-name">${escapeHtml(item.label)}</div>
+          <div class="bar" style="--value: ${item.percent === null ? 0 : item.percent}">
+            <span style="background: ${escapeHtml(item.color)}"></span>
+          </div>
+          <div class="age-value">${escapeHtml(formatValue(item.percent, "percent"))}</div>
+        </div>
+      `).join("") + `
+        <div class="age-row">
+          <div class="age-name">Median Age</div>
+          <div class="bar" style="--value: ${medianAge === null ? 0 : clamp((medianAge / 70) * 100, 0, 100)}">
+            <span style="background: #17202a"></span>
+          </div>
+          <div class="age-value">${escapeHtml(formatValue(medianAge, "decimal1"))}</div>
+        </div>
+      `;
+    }
+
+    function updateRevenueEstimate() {
+      const households = Number(calcHouseholdsEl.value);
+      const penetrationPercent = Number(calcPenetrationEl.value);
+      const ordersPerMonth = Number(calcOrdersEl.value);
+      const averageOrderValue = Number(calcAovEl.value);
+      const valid = [households, penetrationPercent, ordersPerMonth, averageOrderValue].every((value) => Number.isFinite(value) && value >= 0);
+
+      if (!valid) {
+        calcResultEl.textContent = "$0";
+        calcNoteEl.textContent = "Enter households, penetration %, orders per month, and average order value.";
+        return;
+      }
+
+      const monthlyRevenue = households * (penetrationPercent / 100) * ordersPerMonth * averageOrderValue;
+      calcResultEl.textContent = formatValue(monthlyRevenue, "currency");
+      calcNoteEl.textContent = `${formatValue(households, "number")} households x ${formatValue(penetrationPercent, "percent")} penetration x ${ordersPerMonth.toFixed(1)} orders/month x ${formatValue(averageOrderValue, "currency")}`;
+    }
+
+    function renderEthnicityList(items) {
+      ethnicityListEl.innerHTML = items.map((item) => `
+        <div class="ethnicity-row">
+          <div class="ethnicity-name">${escapeHtml(item.label)}</div>
+          <div class="bar" style="--value: ${item.percent === null ? 0 : item.percent}">
+            <span style="background: ${escapeHtml(item.color)}"></span>
+          </div>
+          <div class="ethnicity-value">${escapeHtml(formatValue(item.percent, "percent"))}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderRaceList(items) {
+      raceListEl.innerHTML = items.map((item) => `
+        <div class="race-row">
+          <div class="race-name">${escapeHtml(item.label)}</div>
+          <div class="bar" style="--value: ${item.percent === null ? 0 : item.percent}">
+            <span style="background: ${escapeHtml(item.color)}"></span>
+          </div>
+          <div class="race-value">${escapeHtml(formatValue(item.percent, "percent"))}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderFallbackTractMap(tracts, center, radius) {
+      const rings = tracts.flatMap((tract) => (tract.geometry?.rings || []).map((ring) => ({
+        geoid: tract.geoid,
+        ring
+      })));
+
+      if (!rings.length) {
+        mapEl.innerHTML = `<text x="400" y="210" text-anchor="middle" fill="#667085" font-size="18">No tract geometry returned</text>`;
+        return;
+      }
+
+      const points = rings.flatMap((item) => item.ring);
+      const lons = points.map((point) => point[0]);
+      const lats = points.map((point) => point[1]);
+      const minLon = Math.min(...lons);
+      const maxLon = Math.max(...lons);
+      const minLat = Math.min(...lats);
+      const maxLat = Math.max(...lats);
+      const avgLat = (minLat + maxLat) / 2;
+      const lonFactor = Math.cos(avgLat * Math.PI / 180);
+      const width = 800;
+      const height = 420;
+      const pad = 28;
+      const lonSpan = (maxLon - minLon) * lonFactor || 0.01;
+      const latSpan = maxLat - minLat || 0.01;
+      const scale = Math.min((width - pad * 2) / lonSpan, (height - pad * 2) / latSpan);
+      const mapWidth = lonSpan * scale;
+      const mapHeight = latSpan * scale;
+      const offsetX = (width - mapWidth) / 2;
+      const offsetY = (height - mapHeight) / 2;
+
+      const project = ([lon, lat]) => [
+        offsetX + (lon - minLon) * lonFactor * scale,
+        offsetY + (maxLat - lat) * scale
+      ];
+
+      const paths = rings.map((item) => {
+        const d = item.ring.map((point, index) => {
+          const [x, y] = project(point);
+          return `${index === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`;
+        }).join(" ");
+        return `<path d="${d} Z" fill="rgba(35, 86, 216, 0.18)" stroke="#2356d8" stroke-width="1.2"><title>${escapeHtml(item.geoid)}</title></path>`;
+      }).join("");
+
+      const [centerX, centerY] = project([Number(center.x), Number(center.y)]);
+      const radiusDegrees = radius / 69;
+      const radiusPixels = Math.max(6, radiusDegrees * scale);
+
+      mapEl.innerHTML = `
+        <rect x="0" y="0" width="${width}" height="${height}" fill="#eef3f7"></rect>
+        <circle cx="${centerX.toFixed(1)}" cy="${centerY.toFixed(1)}" r="${radiusPixels.toFixed(1)}" fill="rgba(31, 138, 91, 0.08)" stroke="#1f8a5b" stroke-width="1.5" stroke-dasharray="6 5"></circle>
+        ${paths}
+        <circle cx="${centerX.toFixed(1)}" cy="${centerY.toFixed(1)}" r="6" fill="#17202a" stroke="#ffffff" stroke-width="3"></circle>
+        <text x="18" y="394" fill="#475467" font-size="14">${tracts.length} tract${tracts.length === 1 ? "" : "s"} intersect ${radius.toFixed(1)} mi radius</text>
+      `;
+    }
+
+    async function renderGoogleMapRestaurantsAndSchools(tracts, center, radius, apiKey) {
+      try {
+        setStatus("Loading Google Maps, restaurants, and schools...");
+        await loadGoogleMaps(apiKey);
+        showGoogleMap();
+
+        const centerLatLng = {
+          lat: Number(center.y),
+          lng: Number(center.x)
+        };
+
+        googleMap = new google.maps.Map(googleMapEl, {
+          center: centerLatLng,
+          zoom: 14,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: true
+        });
+
+        const bounds = new google.maps.LatLngBounds();
+        drawGoogleTracts(tracts, bounds);
+        const radiusCircle = new google.maps.Circle({
+          center: centerLatLng,
+          radius: milesToMeters(radius),
+          map: googleMap,
+          fillColor: "#1f8a5b",
+          fillOpacity: 0.06,
+          strokeColor: "#1f8a5b",
+          strokeOpacity: 0.9,
+          strokeWeight: 2
+        });
+        bounds.union(radiusCircle.getBounds());
+
+        new google.maps.Marker({
+          position: centerLatLng,
+          map: googleMap,
+          title: "Input address"
+        });
+
+        const [restaurants, schools] = await Promise.all([
+          searchChineseRestaurants(googleMap, centerLatLng, radius),
+          searchSchools(centerLatLng, radius)
+        ]);
+        renderRestaurants(restaurants);
+        renderSchools(schools);
+        addRestaurantMarkers(restaurants);
+        addSchoolMarkers(schools);
+        if (!bounds.isEmpty()) {
+          googleMap.fitBounds(bounds, 28);
+        }
+        return { restaurants, schools };
+      } catch (error) {
+        console.error(error);
+        showFallbackMap();
+        renderRestaurantPlaceholder(error.message || "Google Maps could not load. Check your API key and try again.");
+        renderSchoolPlaceholder(error.message || "Google Maps could not load. Check your API key and try again.");
+        return { restaurants: [], schools: [] };
+      }
+    }
+
+    function showFallbackMap() {
+      googleMapEl.style.display = "none";
+      mapEl.style.display = "block";
+      mapNoteEl.textContent = "Demographics are overlap-weighted to the selected radius using tract geometry estimates, so tracts that only partially touch the circle only partially contribute.";
+    }
+
+    function showGoogleMap() {
+      mapEl.style.display = "none";
+      googleMapEl.style.display = "block";
+      mapNoteEl.textContent = "Google Maps shows selected tract outlines and the selected radius. Demographics are overlap-weighted using the tract portion estimated to fall inside the radius.";
+    }
+
+    function loadGoogleMaps(apiKey) {
+      if (window.google?.maps?.places) return Promise.resolve();
+      if (googleMapsPromise) return googleMapsPromise;
+
+      googleMapsPromise = new Promise((resolve, reject) => {
+        const callbackName = `googleMapsReady_${Date.now()}`;
+        const script = document.createElement("script");
+        const params = new URLSearchParams({
+          key: apiKey,
+          libraries: "places",
+          v: "weekly",
+          loading: "async",
+          callback: callbackName
+        });
+
+        window[callbackName] = () => {
+          delete window[callbackName];
+          resolve();
+        };
+
+        script.onerror = () => {
+          delete window[callbackName];
+          googleMapsPromise = null;
+          reject(new Error("Google Maps failed to load. Check that the key enables Maps JavaScript API and Places API."));
+        };
+
+        script.src = `https://maps.googleapis.com/maps/api/js?${params.toString()}`;
+        document.head.appendChild(script);
+      });
+
+      return googleMapsPromise;
+    }
+
+    async function enableAddressAutocomplete() {
+      const apiKey = googleApiKeyInput.value.trim();
+      if (!apiKey || addressAutocomplete) return;
+
+      try {
+        await loadGoogleMaps(apiKey);
+        const { PlaceAutocompleteElement } = await google.maps.importLibrary("places");
+        addressAutocomplete = new PlaceAutocompleteElement({
+          includedRegionCodes: ["us"]
+        });
+        addressAutocomplete.setAttribute("placeholder", "Start typing an address");
+        addressAutocompleteHost.hidden = false;
+        addressAutocompleteHost.replaceChildren(addressAutocomplete);
+
+        addressAutocomplete.addEventListener("gmp-select", async (event) => {
+          const place = event.placePrediction.toPlace();
+          await place.fetchFields({ fields: ["formattedAddress", "location", "displayName"] });
+          if (place.formattedAddress) {
+            addressInput.value = place.formattedAddress;
+          }
+        });
+      } catch (error) {
+        console.warn(error);
+      }
+    }
+
+    function drawGoogleTracts(tracts, bounds) {
+      googleMap.data.forEach((feature) => googleMap.data.remove(feature));
+      googleMap.data.addGeoJson({
+        type: "FeatureCollection",
+        features: tracts.flatMap((tract) => esriRingsToGeoJsonFeatures(tract))
+      });
+      googleMap.data.setStyle({
+        fillColor: "#2356d8",
+        fillOpacity: 0.13,
+        strokeColor: "#2356d8",
+        strokeWeight: 1.5
+      });
+
+      tracts.forEach((tract) => {
+        (tract.geometry?.rings || []).flat().forEach((point) => {
+          bounds.extend({ lat: point[1], lng: point[0] });
+        });
+      });
+    }
+
+    function esriRingsToGeoJsonFeatures(tract) {
+      return (tract.geometry?.rings || []).map((ring, index) => ({
+        type: "Feature",
+        properties: {
+          geoid: tract.geoid,
+          name: tract.name
+        },
+        geometry: {
+          type: "Polygon",
+          coordinates: [closeRing(ring)]
+        },
+        id: `${tract.geoid}-${index}`
+      }));
+    }
+
+    function closeRing(ring) {
+      if (!ring.length) return ring;
+      const first = ring[0];
+      const last = ring[ring.length - 1];
+      const closed = first[0] === last[0] && first[1] === last[1];
+      return closed ? ring : [...ring, first];
+    }
+
+    async function searchChineseRestaurants(map, center, radius) {
+      return searchPlacesByText("Chinese restaurant", "restaurant", center, radius);
+    }
+
+    async function searchSchools(center, radius) {
+      const levels = [
+        { query: "elementary school", level: "elementary" },
+        { query: "middle school", level: "middle" },
+        { query: "high school", level: "high" }
+      ];
+      const groups = await Promise.all(levels.map((item) => searchPlacesByText(item.query, "school", center, radius, 20)));
+      const matches = [];
+      const seen = new Set();
+
+      groups.forEach((places, index) => {
+        const level = levels[index].level;
+        places.forEach((place) => {
+          const official = matchOfficialSchool(place, level);
+          if (!official) return;
+          const key = official.url || `${official.level}-${official.nameKey}-${official.addressKey}`;
+          if (seen.has(key)) return;
+          seen.add(key);
+          place.level = official.level;
+          place.officialProfileUrl = official.url;
+          place.officialGradespan = official.gradespan;
+          place.officialName = official.name;
+          place.officialDbn = getOfficialSchoolDbn(official);
+          place.schoolDemographics = getSchoolDemographics(official);
+          matches.push(place);
+        });
+      });
+
+      return matches.sort((a, b) => a.distanceMeters - b.distanceMeters).slice(0, 5);
+    }
+
+    async function searchPlacesByText(textQuery, includedType, center, radius, maxResultCount = 20) {
+      const { Place, SearchByTextRankPreference } = await google.maps.importLibrary("places");
+      const search = Place.searchByText({
+        textQuery,
+        fields: ["displayName", "formattedAddress", "location", "rating", "userRatingCount", "id", "googleMapsURI"],
+        includedType,
+        locationBias: {
+          center,
+          radius: milesToMeters(radius)
+        },
+        rankPreference: SearchByTextRankPreference.DISTANCE,
+        maxResultCount,
+        region: "us"
+      });
+
+      const { places } = await withTimeout(
+        search,
+        12000,
+        "Google Places did not return results. Check API restrictions, billing, and that Places API (New) is enabled."
+      );
+
+      return dedupeRestaurants(places || [])
+        .map((place) => {
+          const location = place.location?.toJSON ? place.location.toJSON() : place.location;
+          place.distanceMeters = location ? distanceMeters(center, location) : null;
+          return place;
+        })
+        .filter((place) => place.distanceMeters !== null && place.distanceMeters <= milesToMeters(radius))
+        .sort((a, b) => a.distanceMeters - b.distanceMeters);
+    }
+
+    function matchOfficialSchool(place, level) {
+      const placeNameKey = normalizeLookupText(getPlaceName(place));
+      const placeAddressKey = normalizeLookupText(place.formattedAddress || "");
+      const candidates = NYC_PUBLIC_SCHOOLS.filter((school) => school.level === level);
+      const scored = candidates
+        .map((school) => ({
+          school,
+          score: scoreOfficialSchoolMatch(school, placeNameKey, placeAddressKey)
+        }))
+        .filter((item) => item.score > 0)
+        .sort((a, b) => b.score - a.score);
+
+      return scored[0]?.school || null;
+    }
+
+    function normalizeLookupText(value) {
+      return String(value || "")
+        .toUpperCase()
+        .replace(/\([^)]*\)/g, "")
+        .replace(/[^A-Z0-9]+/g, " ")
+        .replace(/\bP S\b/g, "PS")
+        .replace(/\bI S\b/g, "IS")
+        .replace(/\bM S\b/g, "MS")
+        .trim()
+        .replace(/\s+/g, " ");
+    }
+
+    function getOfficialSchoolDbn(official) {
+      if (official?.dbn) return official.dbn;
+      const match = String(official?.name || "").match(/\(([0-9]{2}[A-Z][0-9]{3})\)\s*$/i);
+      return match ? match[1].toUpperCase() : "";
+    }
+
+    function normalizeOfficialSchool(official) {
+      const dbn = getOfficialSchoolDbn(official);
+      const cleanName = String(official?.name || "").replace(/\s*\([0-9]{2}[A-Z][0-9]{3}\)\s*$/i, "").trim();
+      return {
+        ...official,
+        dbn,
+        cleanName,
+        nameKey: normalizeLookupText(cleanName || official?.name || ""),
+        addressKey: normalizeLookupText(official?.addressKey || official?.address || "")
+      };
+    }
+
+    function scoreOfficialSchoolMatch(school, placeNameKey, placeAddressKey) {
+      let score = 0;
+      if (!school || !placeNameKey) return score;
+
+      if (school.nameKey === placeNameKey) score += 100;
+      else if (school.nameKey.includes(placeNameKey) || placeNameKey.includes(school.nameKey)) score += 70;
+
+      const schoolNameWords = new Set((school.nameKey || "").split(" ").filter(Boolean));
+      const placeNameWords = new Set((placeNameKey || "").split(" ").filter(Boolean));
+      const sharedWords = Array.from(placeNameWords).filter((word) => schoolNameWords.has(word));
+      score += Math.min(sharedWords.length * 8, 32);
+
+      if (school.addressKey && placeAddressKey) {
+        if (school.addressKey === placeAddressKey) score += 60;
+        else if (school.addressKey.includes(placeAddressKey) || placeAddressKey.includes(school.addressKey)) score += 40;
+        else if (sameAddressStem(school.addressKey, placeAddressKey)) score += 25;
+      }
+
+      return score;
+    }
+
+    function normalizeSchoolDemographics(item) {
+      return {
+        ...item,
+        categories: (item.categories || []).map((category) => ({
+          ...category,
+          percent: normalizeSheetPercent(category.percent)
+        })),
+        missing: item.missing ? {
+          ...item.missing,
+          percent: normalizeSheetPercent(item.missing.percent)
+        } : null
+      };
+    }
+
+    function normalizeSheetPercent(value) {
+      if (!Number.isFinite(value)) return value;
+      return value <= 1 ? value * 100 : value;
+    }
+
+    function getSchoolDemographics(official) {
+      const dbn = getOfficialSchoolDbn(official);
+      if (dbn && schoolDemographicsByDbn.has(dbn)) {
+        return schoolDemographicsByDbn.get(dbn);
+      }
+      return schoolDemographicsByNameKey.get(official?.nameKey || "") || null;
+    }
+
+    function sameAddressStem(a, b) {
+      if (!a || !b) return false;
+      const aParts = a.split(" ");
+      const bParts = b.split(" ");
+      return aParts.length >= 3 && bParts.length >= 3 &&
+        aParts[0] === bParts[0] &&
+        aParts[1] === bParts[1] &&
+        aParts[2] === bParts[2];
+    }
+
+    function dedupeRestaurants(results) {
+      const seen = new Set();
+      return results.filter((place) => {
+        const id = place.id || place.place_id || place.displayName;
+        if (!id || seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      });
+    }
+
+    function addRestaurantMarkers(restaurants) {
+      restaurantMarkers.forEach((marker) => marker.setMap(null));
+      restaurantMarkers = restaurants.map((place, index) => new google.maps.Marker({
+        position: place.location,
+        map: googleMap,
+        label: String(index + 1),
+        title: getPlaceName(place)
+      }));
+    }
+
+    function addSchoolMarkers(schools) {
+      schoolMarkers.forEach((marker) => marker.setMap(null));
+      schoolMarkers = schools.map((place, index) => new google.maps.Marker({
+        position: place.location,
+        map: googleMap,
+        label: `S${index + 1}`,
+        title: getPlaceName(place),
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          fillColor: "#1f8a5b",
+          fillOpacity: 0.95,
+          scale: 9,
+          strokeColor: "#ffffff",
+          strokeWeight: 2
+        }
+      }));
+    }
+
+    function renderRestaurants(restaurants) {
+      if (!restaurants.length) {
+        renderRestaurantPlaceholder("No Chinese restaurants were returned by Google Places for this radius.");
+        return;
+      }
+
+      restaurantListEl.innerHTML = restaurants.map((place, index) => `
+        <div class="restaurant-row">
+          <div>
+            <div class="restaurant-name">${index + 1}. ${escapeHtml(getPlaceName(place))}</div>
+            <div class="restaurant-address">${escapeHtml(place.formattedAddress || place.vicinity || "Address not provided")}</div>
+            <div class="restaurant-links">
+              ${place.googleMapsURI ? `<a href="${escapeHtml(place.googleMapsURI)}" target="_blank" rel="noopener noreferrer">Google profile</a>` : ""}
+              <span>${escapeHtml(formatDistance(place.distanceMeters))}</span>
+            </div>
+          </div>
+          <div class="rating">
+            ${escapeHtml(formatRating(place))}
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderRestaurantPlaceholder(message) {
+      restaurantMarkers.forEach((marker) => marker.setMap(null));
+      restaurantMarkers = [];
+      restaurantListEl.innerHTML = `<div class="fine-print">${escapeHtml(message)}</div>`;
+    }
+
+    function renderSchools(schools) {
+      if (!schools.length) {
+        renderSchoolPlaceholder("No schools were returned by Google Places for this radius.");
+        return;
+      }
+
+      schoolListEl.innerHTML = schools.map((place, index) => `
+        <div class="restaurant-row">
+          <div>
+            <div class="restaurant-name">${index + 1}. ${escapeHtml(place.officialName || getPlaceName(place))}</div>
+            <div class="restaurant-address">${escapeHtml(place.formattedAddress || "Address not provided")}</div>
+            <div class="restaurant-links">
+              ${place.officialProfileUrl ? `<a href="${escapeHtml(place.officialProfileUrl)}" target="_blank" rel="noopener noreferrer">NYC school profile</a>` : ""}
+              <span>${escapeHtml(formatDistance(place.distanceMeters))}</span>
+            </div>
+            ${renderSchoolDemographics(place.schoolDemographics)}
+          </div>
+          <div class="rating">
+            ${escapeHtml(place.level ? `${capitalize(place.level)} school` : "School")}<br>
+            <span style="color: var(--muted); font-weight: 700;">${escapeHtml(place.officialGradespan || "")}</span>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderSchoolPlaceholder(message) {
+      schoolMarkers.forEach((marker) => marker.setMap(null));
+      schoolMarkers = [];
+      schoolListEl.innerHTML = `<div class="fine-print">${escapeHtml(message)}</div>`;
+    }
+
+    function renderSchoolDemographics(demographics) {
+      if (!demographics) {
+        return `<div class="school-subnote">School demographics were not found in the local NYC snapshot file.</div>`;
+      }
+
+      const rows = demographics.categories.map((item) => `
+        <div class="school-demographic-row">
+          <div class="school-demographic-label">${escapeHtml(item.label)}</div>
+          <div class="bar" style="--value: ${item.percent === null ? 0 : item.percent}">
+            <span style="background: ${escapeHtml(item.color)}"></span>
+          </div>
+          <div class="school-demographic-value">${escapeHtml(formatValue(item.percent, "percent"))}</div>
+        </div>
+      `).join("");
+
+      return `
+        <div class="school-demographics">${rows}</div>
+        <div class="school-subnote">${escapeHtml(formatValue(demographics.totalEnrollment, "number"))} students · NYCPS 2024-25 demographic snapshot</div>
+      `;
+    }
+
+    function renderSchoolComparison(neighborhoodItems, schools) {
+      if (!schools.length) {
+        renderSchoolComparisonPlaceholder("No nearby schools were available to compare.");
+        return;
+      }
+      if (!neighborhoodItems.length) {
+        renderSchoolComparisonPlaceholder("Neighborhood demographic comparison data was not available.");
+        return;
+      }
+
+      const neighborhoodById = new Map(neighborhoodItems.map((item) => [item.id, item]));
+      const comparableSchools = schools.filter((school) => school.schoolDemographics);
+      if (!comparableSchools.length) {
+        renderSchoolComparisonPlaceholder("Nearby schools loaded, but school demographic rows were not found.");
+        return;
+      }
+
+      const schoolAverage = averageSchoolDemographics(comparableSchools);
+      const rows = schoolAverage.map((item) => {
+        const neighborhood = neighborhoodById.get(item.id);
+        const delta = item.percent - (neighborhood?.percent || 0);
+        return `
+          <div class="comparison-grid-row">
+            <div class="comparison-grid-label">${escapeHtml(item.label)}</div>
+            <div class="comparison-grid-value">${escapeHtml(formatValue(item.percent, "percent"))}</div>
+            <div class="comparison-grid-value">${escapeHtml(formatValue(neighborhood?.percent ?? null, "percent"))}</div>
+            <div class="comparison-grid-value">
+              <span class="comparison-grid-delta ${escapeHtml(deltaClass(delta))}">${escapeHtml(formatSignedDelta(delta))}</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      schoolComparisonListEl.innerHTML = `
+        <div class="comparison-card">
+          <div class="comparison-title">Nearby School Average vs Neighborhood</div>
+          <div class="comparison-summary">${escapeHtml(`Average of ${comparableSchools.length} nearby NYC public schools within the selected radius.`)}</div>
+          <div class="comparison-grid">
+            <div class="comparison-grid-head">
+              <div>Category</div>
+              <div style="text-align: right;">School Avg</div>
+              <div style="text-align: right;">Area</div>
+              <div style="text-align: right;">Delta</div>
+            </div>
+            ${rows}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderSchoolComparisonPlaceholder(message) {
+      schoolComparisonListEl.innerHTML = `<div class="fine-print">${escapeHtml(message)}</div>`;
+    }
+
+    function averageSchoolDemographics(schools) {
+      return schoolComparableCategories.map((category) => {
+        const values = schools
+          .map((school) => school.schoolDemographics?.categories?.find((item) => item.id === category.id)?.percent)
+          .filter((value) => Number.isFinite(value));
+        const average = values.length
+          ? values.reduce((sum, value) => sum + value, 0) / values.length
+          : null;
+        return {
+          id: category.id,
+          label: category.label,
+          color: category.color,
+          percent: average
+        };
+      });
+    }
+
+    function formatRating(place) {
+      if (!place.rating) return "No rating";
+      const ratingCount = place.userRatingCount || place.user_ratings_total;
+      const count = ratingCount ? ` (${new Intl.NumberFormat("en-US").format(ratingCount)})` : "";
+      return `${Number(place.rating).toFixed(1)} / 5${count}`;
+    }
+
+    function formatDistance(meters) {
+      if (meters === null || !Number.isFinite(meters)) return "Distance unavailable";
+      const miles = meters / 1609.344;
+      if (miles < 0.1) return `${Math.round(meters)} m away`;
+      return `${miles.toFixed(2)} mi away`;
+    }
+
+    function formatSignedDelta(value) {
+      if (!Number.isFinite(value)) return "No delta";
+      const rounded = Math.abs(value).toFixed(1);
+      if (Math.abs(value) < 0.05) return "0.0 pts";
+      return `${value > 0 ? "+" : "-"}${rounded} pts`;
+    }
+
+    function deltaClass(value) {
+      if (!Number.isFinite(value) || Math.abs(value) < 0.05) return "";
+      return value > 0 ? "positive" : "negative";
+    }
+
+    function getPlaceName(place) {
+      return place.displayName || place.name || "Unnamed place";
+    }
+
+    function capitalize(value) {
+      return value ? value.charAt(0).toUpperCase() + value.slice(1) : "";
+    }
+
+    function withTimeout(promise, timeoutMs, message) {
+      return Promise.race([
+        promise,
+        new Promise((_, reject) => {
+          window.setTimeout(() => reject(new Error(message)), timeoutMs);
+        })
+      ]);
+    }
+
+    function distanceMeters(a, b) {
+      const radius = 6371008.8;
+      const lat1 = toRadians(a.lat);
+      const lat2 = toRadians(b.lat);
+      const dLat = toRadians(b.lat - a.lat);
+      const dLng = toRadians(b.lng - a.lng);
+      const h = Math.sin(dLat / 2) ** 2
+        + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+      return 2 * radius * Math.asin(Math.sqrt(h));
+    }
+
+    function toRadians(degrees) {
+      return degrees * Math.PI / 180;
+    }
+
+    function milesToMeters(miles) {
+      return miles * 1609.344;
+    }
+
+    function setStatus(message, isError = false) {
+      statusEl.textContent = message;
+      statusEl.classList.toggle("error", isError);
+    }
+
+    function setLoading(isLoading) {
+      button.disabled = isLoading;
+      button.textContent = isLoading ? "Scoring..." : "Score Address";
+    }
+
+    function toNumber(value) {
+      const number = Number(value);
+      return Number.isFinite(number) && number > -666666000 ? number : null;
+    }
+
+    function normalize(value, min, max) {
+      if (value === null) return 0;
+      return ((value - min) / (max - min)) * 100;
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function formatValue(value, type) {
+      if (value === null) return "No data";
+      if (type === "currency") {
+        return new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
+          maximumFractionDigits: 0
+        }).format(value);
+      }
+      if (type === "decimal1") {
+        return new Intl.NumberFormat("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value);
+      }
+      if (type === "percent") {
+        return `${value.toFixed(1)}%`;
+      }
+      return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(value);
+    }
+
+    function gradeForScore(score) {
+      if (score >= 80) return "Strong";
+      if (score >= 65) return "Good";
+      if (score >= 50) return "Mixed";
+      return "Needs Review";
+    }
+
+    function colorForScore(score) {
+      if (score >= 80) return "var(--green)";
+      if (score >= 65) return "var(--blue)";
+      if (score >= 50) return "var(--amber)";
+      return "var(--red)";
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+  </script>
+</body>
+</html>
