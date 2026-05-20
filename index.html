@@ -2103,6 +2103,7 @@
         <label for="chain-input" data-i18n="poi_track">Point of Interest to Track</label>
         <input id="chain-input" name="chain-input" type="text" value="Key Food, Food Bazaar, Trade Fair, Burger King, Starbucks, Dunkin, Target, CVS, Walgreens, McDonald's, Popeyes, KFC, Panda Express" placeholder="Comma-separated point of interest names" data-i18n-placeholder="poi_placeholder">
       </div>
+      <input id="census-api-key" name="census-api-key" type="hidden" value="63417eed3d19910c815c21e181737d91864a643b">
       <div id="status" class="status" data-i18n="ready">Ready.</div>
     </section>
 
@@ -2677,6 +2678,7 @@
     const secondaryCategoryEl = document.querySelector("#secondary-category");
     const openContactModalEl = document.querySelector("#open-contact-modal");
     const googleApiKeyInput = document.querySelector("#google-api-key");
+    const censusApiKeyInput = document.querySelector("#census-api-key");
     const chainInputEl = document.querySelector("#chain-input");
     const printButtonEl = document.querySelector("#print-button");
     const statusEl = document.querySelector("#status");
@@ -2792,6 +2794,7 @@
     let currentDemographicOverviewRows = [];
     let currentCompetitorCategoryKey = "chinese_restaurant";
     let comparisonRowCounter = 0;
+    const CENSUS_API_KEY_STORAGE_KEY = "market-intelligence-engine:census-api-key";
     const competitorCategoryConfig = {
       chinese_restaurant: {
         label: "Chinese Restaurant",
@@ -2984,6 +2987,14 @@
     });
     updateTargetMonthlySales();
     updateRequiredCustomersDisplay();
+    try {
+      const savedCensusApiKey = window.localStorage.getItem(CENSUS_API_KEY_STORAGE_KEY);
+      if (savedCensusApiKey) {
+        censusApiKeyInput.value = savedCensusApiKey;
+      }
+    } catch (error) {
+      console.warn("Could not load saved Census API key.", error);
+    }
     createComparisonAddressRow("");
     createComparisonAddressRow("");
     renderComparisonPlaceholder();
@@ -3006,6 +3017,18 @@
     });
     comparisonRunButtonEl.addEventListener("click", () => {
       runComparison();
+    });
+    censusApiKeyInput.addEventListener("input", () => {
+      try {
+        const value = censusApiKeyInput.value.trim();
+        if (value) {
+          window.localStorage.setItem(CENSUS_API_KEY_STORAGE_KEY, value);
+        } else {
+          window.localStorage.removeItem(CENSUS_API_KEY_STORAGE_KEY);
+        }
+      } catch (error) {
+        console.warn("Could not save Census API key.", error);
+      }
     });
 
     printButtonEl.addEventListener("click", () => {
@@ -3209,9 +3232,14 @@
       const formData = new FormData(form);
       const address = (formData.get("address") || "").trim();
       const googleApiKey = (formData.get("google-api-key") || "").trim();
+      const censusApiKey = (censusApiKeyInput.value || "").trim();
       currentCompetitorCategoryKey = getSelectedCompetitorCategoryKey();
       const radius = Number(radiusInput.value);
       if (!address) return;
+      if (!censusApiKey) {
+        setStatus("Enter a Census API key to load ACS data and score the address.", true);
+        return;
+      }
 
       setStatus("Finding Census tract...");
       setLoading(true);
@@ -3228,7 +3256,7 @@
         const nearbyTracts = await fetchNearbyTracts(center, radius, tract);
 
         setStatus(`Pulling ACS data for ${nearbyTracts.length} tract${nearbyTracts.length === 1 ? "" : "s"}...`);
-        const acs = await fetchAcsDataForTracts(nearbyTracts);
+        const acs = await fetchAcsDataForTracts(nearbyTracts, censusApiKey);
         await renderResults(match, tract, nearbyTracts, radius, acs, googleApiKey);
         setStatus("Done.");
       } catch (error) {
@@ -3275,6 +3303,56 @@
           else resolve(value);
         }
       });
+    }
+
+    async function parseJsonResponse(response, sourceLabel) {
+      const contentType = String(response.headers.get("content-type") || "").toLowerCase();
+      const rawText = await response.text();
+      try {
+        return JSON.parse(rawText);
+      } catch (error) {
+        const snippet = rawText.trim().slice(0, 120).replace(/\s+/g, " ");
+        if (snippet.startsWith("<")) {
+          throw new Error(`${sourceLabel} returned HTML instead of JSON. The service may be temporarily unavailable.`);
+        }
+        if (contentType && !contentType.includes("json")) {
+          throw new Error(`${sourceLabel} returned ${contentType || "non-JSON data"} instead of JSON.`);
+        }
+        throw new Error(`${sourceLabel} returned unreadable data instead of JSON.${snippet ? ` Response started with: ${snippet}` : ""}`);
+      }
+    }
+
+    function delay(ms) {
+      return new Promise((resolve) => window.setTimeout(resolve, ms));
+    }
+
+    async function fetchJsonWithRetry(url, sourceLabel, options = {}) {
+      const retries = Number.isFinite(options.retries) ? options.retries : 0;
+      const retryDelayMs = Number.isFinite(options.retryDelayMs) ? options.retryDelayMs : 1200;
+      let lastError = null;
+
+      for (let attempt = 0; attempt <= retries; attempt += 1) {
+        try {
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`${sourceLabel} returned ${response.status}.`);
+          }
+          return await parseJsonResponse(response, sourceLabel);
+        } catch (error) {
+          lastError = error;
+          if (attempt < retries) {
+            setStatus(`${sourceLabel} is temporarily unavailable. Retrying...`);
+            await delay(retryDelayMs);
+            continue;
+          }
+        }
+      }
+
+      const message = String(lastError?.message || "");
+      if (sourceLabel === "ACS API") {
+        throw new Error(`ACS API is temporarily unavailable. Please try again in a minute.${message ? ` Details: ${message}` : ""}`);
+      }
+      throw lastError || new Error(`${sourceLabel} request failed.`);
     }
 
     function getSelectedCompetitorCategoryKey() {
@@ -3415,12 +3493,7 @@
         outSR: "4326"
       });
 
-      const response = await fetch(`${TIGER_TRACTS_URL}?${params.toString()}`);
-      if (!response.ok) {
-        throw new Error(`TIGERweb returned ${response.status}.`);
-      }
-
-      const payload = await response.json();
+      const payload = await fetchJsonWithRetry(`${TIGER_TRACTS_URL}?${params.toString()}`, "TIGERweb");
       if (payload.error) {
         throw new Error(payload.error.message || "TIGERweb could not return nearby tracts.");
       }
@@ -3448,10 +3521,10 @@
       return addOverlapSharesToTracts(Array.from(deduped.values()), center, radius);
     }
 
-    async function fetchAcsDataForTracts(tracts) {
+    async function fetchAcsDataForTracts(tracts, censusApiKey) {
       const [profileRows, comparableRows] = await Promise.all([
-        fetchDatasetRowsForTracts(ACS_DATASET, [...acsMetricVariableIds, ...supportVariableIds], tracts),
-        fetchDatasetRowsForTracts(ACS_BASE_DATASET, schoolComparableVariableIds, tracts)
+        fetchDatasetRowsForTracts(ACS_DATASET, [...acsMetricVariableIds, ...supportVariableIds], tracts, censusApiKey),
+        fetchDatasetRowsForTracts(ACS_BASE_DATASET, schoolComparableVariableIds, tracts, censusApiKey)
       ]);
 
       if (!profileRows.length) {
@@ -3464,7 +3537,7 @@
       };
     }
 
-    async function fetchDatasetRowsForTracts(datasetUrl, variableIds, tracts) {
+    async function fetchDatasetRowsForTracts(datasetUrl, variableIds, tracts, censusApiKey) {
       const get = ["NAME", ...new Set(variableIds)].join(",");
       const groups = groupTractsByCounty(tracts);
       const rows = [];
@@ -3474,13 +3547,9 @@
 
       await Promise.all(Array.from(groups.entries()).map(async ([key, group]) => {
         const [state, county] = key.split("-");
-        const url = `${datasetUrl}?get=${encodeURIComponent(get)}&for=tract:*&in=state:${state}%20county:${county}`;
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`ACS API returned ${response.status}.`);
-        }
-
-        const countyRows = await response.json();
+        const keyQuery = censusApiKey ? `&key=${encodeURIComponent(censusApiKey)}` : "";
+        const url = `${datasetUrl}?get=${encodeURIComponent(get)}&for=tract:*&in=state:${state}%20county:${county}${keyQuery}`;
+        const countyRows = await fetchJsonWithRetry(url, "ACS API", { retries: 1, retryDelayMs: 1500 });
         if (!Array.isArray(countyRows) || countyRows.length < 2) return;
 
         const headers = countyRows[0];
