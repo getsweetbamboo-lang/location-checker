@@ -1861,6 +1861,129 @@
       gap: 4px;
     }
 
+    .map-page-shell {
+      display: grid;
+      gap: 18px;
+    }
+
+    .map-page-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .map-page-map-wrap {
+      position: relative;
+      min-height: 720px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #eef3f7;
+    }
+
+    .map-page-google,
+    .map-page-fallback {
+      width: 100%;
+      min-height: 720px;
+    }
+
+    .map-page-fallback {
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .map-page-legend {
+      display: grid;
+      gap: 14px;
+    }
+
+    .map-page-summary {
+      display: grid;
+      gap: 12px;
+    }
+
+    .map-page-card {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .map-page-card h3 {
+      margin: 0 0 8px;
+      font-size: 0.98rem;
+    }
+
+    .map-layer-control {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .map-layer-control label {
+      margin-bottom: 0;
+    }
+
+    .map-page-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    .map-page-meta {
+      display: grid;
+      gap: 10px;
+    }
+
+    .map-page-meta-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      font-size: 0.9rem;
+    }
+
+    .map-page-meta-row .label {
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .map-page-meta-row .value {
+      color: var(--ink);
+      text-align: right;
+      font-weight: 650;
+    }
+
+    .legend-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px 16px;
+      margin-top: 12px;
+    }
+
+    .legend-row {
+      display: grid;
+      grid-template-columns: 16px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      font-size: 0.9rem;
+      color: #344054;
+    }
+
+    .legend-swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      border: 1px solid rgba(22, 32, 51, 0.12);
+    }
+
     .comparison-cell-main {
       font-size: 0.88rem;
       line-height: 1.3;
@@ -1909,6 +2032,10 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
+      .map-page-grid {
+        grid-template-columns: 1fr;
+      }
+
       .comparison-grid-head,
       .comparison-grid-row {
         grid-template-columns: minmax(120px, 1fr) minmax(78px, 0.72fr) minmax(78px, 0.72fr) minmax(136px, 1fr) minmax(82px, 0.72fr) minmax(138px, 1fr);
@@ -1927,7 +2054,8 @@
       .meta-grid,
       .calc-grid,
       .metric-grid,
-      .insight-layout {
+      .insight-layout,
+      .map-page-grid {
         grid-template-columns: 1fr;
       }
 
@@ -2063,6 +2191,7 @@
     <nav class="page-tabs" aria-label="Workspace pages">
       <button class="page-tab active" type="button" data-page-tab="analysis" data-i18n="site_analysis">Site Analysis</button>
       <button class="page-tab" type="button" data-page-tab="comparison" data-i18n="site_comparison">Site Comparison</button>
+      <button class="page-tab" type="button" data-page-tab="map">Map</button>
     </nav>
 
     <section class="app-page active" id="analysis-page" data-page="analysis">
@@ -2458,6 +2587,98 @@
         </section>
       </div>
     </section>
+
+    <section class="app-page" id="map-page" data-page="map">
+      <div class="map-page-shell">
+        <section class="surface-section section-block">
+          <div class="section-head">
+            <h2 id="map-layer-title">Layer 2 — Predominant Ethnicity</h2>
+            <div class="section-meta" id="map-layer-subtitle">Tracts in the selected trade area</div>
+          </div>
+          <div class="map-page-grid">
+            <div class="map-page-map-wrap">
+              <div id="predominant-map" class="map-page-google" aria-label="Map of nearby tracts colored by predominant ethnicity"></div>
+              <div id="predominant-map-fallback" class="map-page-fallback">Score an address on the Site Analysis page to build the tract map.</div>
+            </div>
+            <div class="map-page-legend">
+              <div class="map-page-card">
+                <div class="map-layer-control">
+                  <label for="map-layer-select">Map Layer</label>
+                  <select id="map-layer-select">
+                    <option value="predominant_ethnicity">Predominant Ethnicity</option>
+                    <option value="hispanic_percentage">Hispanic Population Percentage</option>
+                    <option value="black_percentage">Black Population Percentage</option>
+                    <option value="white_percentage">White Population Percentage</option>
+                    <option value="asian_percentage">Asian Population Percentage</option>
+                  </select>
+                </div>
+                <h3>Current Site</h3>
+                <div class="map-page-meta">
+                  <div class="map-page-meta-row"><span class="label">Address</span><span class="value" id="map-page-address">-</span></div>
+                  <div class="map-page-meta-row"><span class="label">Radius</span><span class="value" id="map-page-radius">-</span></div>
+                  <div class="map-page-meta-row"><span class="label">Tracts</span><span class="value" id="map-page-tracts">-</span></div>
+                </div>
+              </div>
+              <div class="map-page-card">
+                <h3>Legend</h3>
+                <p id="map-page-legend-copy">Each tract is colored by the largest demographic group using tract-level ACS values.</p>
+                <div class="legend-list" id="predominant-map-legend"></div>
+              </div>
+              <div class="map-page-card">
+                <h3>How to read it</h3>
+                <p id="map-page-read-copy">This map uses the tracts intersecting your selected radius. The radius is shown as a circle around the matched address, while tract color comes from each tract’s predominant group rather than the area-wide aggregate.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="surface-section section-block">
+          <div class="section-head">
+            <h2 id="crime-map-title">Layer 8 — NYC Crime Incidents</h2>
+            <div class="section-meta" id="crime-map-subtitle">NYPD complaint incidents aggregated to tracts in the selected trade area</div>
+          </div>
+          <div class="map-page-grid">
+            <div class="map-page-map-wrap">
+              <div id="crime-map" class="map-page-google" aria-label="Map of nearby tracts colored by NYC incident counts"></div>
+              <div id="crime-map-fallback" class="map-page-fallback">Score an address on the Site Analysis page to build the crime map.</div>
+            </div>
+            <div class="map-page-legend">
+              <div class="map-page-card">
+                <div class="map-layer-control">
+                  <label for="crime-layer-select">Crime View</label>
+                  <select id="crime-layer-select">
+                    <option value="total">Total Incidents</option>
+                    <option value="violent">Violent Crime</option>
+                    <option value="property">Property Crime</option>
+                    <option value="robbery">Robbery</option>
+                    <option value="burglary">Burglary</option>
+                    <option value="assault">Assault</option>
+                    <option value="retail_theft">Retail-Theft-Related</option>
+                  </select>
+                </div>
+                <h3>Current Crime View</h3>
+                <div class="map-page-meta">
+                  <div class="map-page-meta-row"><span class="label">Address</span><span class="value" id="crime-map-address">-</span></div>
+                  <div class="map-page-meta-row"><span class="label">Radius</span><span class="value" id="crime-map-radius">-</span></div>
+                  <div class="map-page-meta-row"><span class="label">Tracts</span><span class="value" id="crime-map-tracts">-</span></div>
+                  <div class="map-page-meta-row"><span class="label">Matched incidents</span><span class="value" id="crime-map-total">-</span></div>
+                </div>
+                <p id="crime-map-update-note" style="margin-top:10px;">Quarterly update · Last updated Apr 28, 2026</p>
+              </div>
+              <div class="map-page-card">
+                <h3>Legend</h3>
+                <p id="crime-map-legend-copy">Each tract is colored by incident count for the selected crime view using NYC Open Data complaint records.</p>
+                <div class="legend-list" id="crime-map-legend"></div>
+              </div>
+              <div class="map-page-card">
+                <h3>How to read it</h3>
+                <p id="crime-map-read-copy">This layer aggregates NYPD complaint incidents into the tracts intersecting your selected radius. It is a public incident-count view, not a modeled crime risk index.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
   </main>
 
   <div class="modal-overlay" id="profile-calibration-modal" hidden>
@@ -2557,6 +2778,8 @@
     const ACS_BASE_DATASET = `https://api.census.gov/data/${ACS_YEAR}/acs/acs5`;
     const GEOCODER_URL = "https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress";
     const TIGER_TRACTS_URL = "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Tracts_Blocks/MapServer/7/query";
+    const NYC_CRIME_YTD_DATASET = "https://data.cityofnewyork.us/resource/5uac-w243.json";
+    const NYC_CRIME_UPDATE_NOTE = "Quarterly update · Last updated Apr 28, 2026";
 
     const variables = [
       { id: "DP05_0001E", label: "Population", format: "number" },
@@ -2584,6 +2807,188 @@
       { id: "DP05_0074E", label: "Some Other Race", color: "#c75d5d" },
       { id: "DP05_0075E", label: "Two or More Races", color: "#6b7280" }
     ];
+
+    const predominantEthnicityCategories = [
+      { id: "DP05_0037E", label: "White", color: "#67c5b5" },
+      { id: "DP05_0061E", label: "Asian", color: "#ca7b74" },
+      { id: "DP05_0090E", label: "Hispanic or Latino", color: "#9fd4f6" },
+      { id: "DP05_0045E", label: "Black/African American", color: "#f3e08d" },
+      { id: "DP05_0053E", label: "American Indian & Alaska Native", color: "#df5ba8" },
+      { id: "DP05_0069E", label: "Native Hawaiian & Other Pacific Islander", color: "#39b57b" },
+      { id: "DP05_0074E", label: "Other", color: "#f2c8d0" },
+      { id: "DP05_0075E", label: "Two or More", color: "#1f9fe5" }
+    ];
+
+    const hispanicPercentageBins = [
+      { min: 0, max: 5, label: "0% to 5%", color: "#fff7ee" },
+      { min: 5, max: 10, label: "5% to 10%", color: "#ffe5cf" },
+      { min: 10, max: 20, label: "10% to 20%", color: "#ffc7b0" },
+      { min: 20, max: 40, label: "20% to 40%", color: "#f59883" },
+      { min: 40, max: 101, label: "40%+", color: "#d9564c" }
+    ];
+
+    const crimePalette = ["#2aa9b5", "#71c4c8", "#b9d2c6", "#fff6d9", "#ffd7b5", "#e99567", "#cd7148"];
+    const crimeViewConfigs = {
+      total: {
+        label: "Total Incidents",
+        title: "Layer 8 — NYC Crime Incidents",
+        subtitle: "All NYPD complaint incidents aggregated to tracts in the selected trade area",
+        legendText: "Each tract is colored by total NYPD complaint incidents matched into that tract using NYC Open Data.",
+        readText: "This layer aggregates all current-year NYPD complaint incidents into the tracts intersecting your selected radius. It is a public incident-count view, not a modeled crime risk index.",
+        bins: [
+          { min: 0, max: 10, label: "< 10", color: crimePalette[0] },
+          { min: 10, max: 20, label: "10 to 20", color: crimePalette[1] },
+          { min: 20, max: 35, label: "20 to 35", color: crimePalette[2] },
+          { min: 35, max: 50, label: "35 to 50", color: crimePalette[3] },
+          { min: 50, max: 75, label: "50 to 75", color: crimePalette[4] },
+          { min: 75, max: 100, label: "75 to 100", color: crimePalette[5] },
+          { min: 100, max: Number.POSITIVE_INFINITY, label: "100+", color: crimePalette[6] }
+        ]
+      },
+      violent: {
+        label: "Violent Crime",
+        title: "Layer 8 — Violent Crime Incidents",
+        subtitle: "Robbery, assault, rape, and homicide complaint incidents by tract",
+        legendText: "Each tract is colored by violent-crime complaint count using NYC Open Data incident records.",
+        readText: "Violent crime includes robbery, assault, rape, and homicide-type complaint incidents based on offense descriptions in the NYPD data.",
+        bins: [
+          { min: 0, max: 3, label: "< 3", color: crimePalette[0] },
+          { min: 3, max: 6, label: "3 to 6", color: crimePalette[1] },
+          { min: 6, max: 10, label: "6 to 10", color: crimePalette[2] },
+          { min: 10, max: 16, label: "10 to 16", color: crimePalette[3] },
+          { min: 16, max: 24, label: "16 to 24", color: crimePalette[4] },
+          { min: 24, max: 35, label: "24 to 35", color: crimePalette[5] },
+          { min: 35, max: Number.POSITIVE_INFINITY, label: "35+", color: crimePalette[6] }
+        ]
+      },
+      property: {
+        label: "Property Crime",
+        title: "Layer 8 — Property Crime Incidents",
+        subtitle: "Burglary, larceny, stolen-property, vehicle, and damage-related incidents by tract",
+        legendText: "Each tract is colored by property-crime complaint count using NYC Open Data incident records.",
+        readText: "Property crime emphasizes burglary, larceny, stolen-property, vehicle-theft, and damage-related complaints. This helps separate break-in and theft pressure from total incidents.",
+        bins: [
+          { min: 0, max: 5, label: "< 5", color: crimePalette[0] },
+          { min: 5, max: 10, label: "5 to 10", color: crimePalette[1] },
+          { min: 10, max: 18, label: "10 to 18", color: crimePalette[2] },
+          { min: 18, max: 28, label: "18 to 28", color: crimePalette[3] },
+          { min: 28, max: 40, label: "28 to 40", color: crimePalette[4] },
+          { min: 40, max: 55, label: "40 to 55", color: crimePalette[5] },
+          { min: 55, max: Number.POSITIVE_INFINITY, label: "55+", color: crimePalette[6] }
+        ]
+      },
+      robbery: {
+        label: "Robbery",
+        title: "Layer 8 — Robbery Incidents",
+        subtitle: "Robbery complaint incidents by tract",
+        legendText: "Each tract is colored by robbery complaint count using NYC Open Data incident records.",
+        readText: "Robbery is separated out because it matters more for storefront walk-in risk than a blended total incident count.",
+        bins: [
+          { min: 0, max: 2, label: "< 2", color: crimePalette[0] },
+          { min: 2, max: 4, label: "2 to 4", color: crimePalette[1] },
+          { min: 4, max: 7, label: "4 to 7", color: crimePalette[2] },
+          { min: 7, max: 10, label: "7 to 10", color: crimePalette[3] },
+          { min: 10, max: 14, label: "10 to 14", color: crimePalette[4] },
+          { min: 14, max: 20, label: "14 to 20", color: crimePalette[5] },
+          { min: 20, max: Number.POSITIVE_INFINITY, label: "20+", color: crimePalette[6] }
+        ]
+      },
+      burglary: {
+        label: "Burglary",
+        title: "Layer 8 — Burglary Incidents",
+        subtitle: "Burglary complaint incidents by tract",
+        legendText: "Each tract is colored by burglary complaint count using NYC Open Data incident records.",
+        readText: "Burglary focuses on unlawful entry and break-in pressure, which can matter differently from street crime or broad incident totals.",
+        bins: [
+          { min: 0, max: 2, label: "< 2", color: crimePalette[0] },
+          { min: 2, max: 4, label: "2 to 4", color: crimePalette[1] },
+          { min: 4, max: 7, label: "4 to 7", color: crimePalette[2] },
+          { min: 7, max: 10, label: "7 to 10", color: crimePalette[3] },
+          { min: 10, max: 14, label: "10 to 14", color: crimePalette[4] },
+          { min: 14, max: 20, label: "14 to 20", color: crimePalette[5] },
+          { min: 20, max: Number.POSITIVE_INFINITY, label: "20+", color: crimePalette[6] }
+        ]
+      },
+      assault: {
+        label: "Assault",
+        title: "Layer 8 — Assault Incidents",
+        subtitle: "Assault complaint incidents by tract",
+        legendText: "Each tract is colored by assault complaint count using NYC Open Data incident records.",
+        readText: "Assault combines felony assault and assault-related offenses to surface personal-safety pressure more clearly than the total-incident layer.",
+        bins: [
+          { min: 0, max: 2, label: "< 2", color: crimePalette[0] },
+          { min: 2, max: 5, label: "2 to 5", color: crimePalette[1] },
+          { min: 5, max: 8, label: "5 to 8", color: crimePalette[2] },
+          { min: 8, max: 12, label: "8 to 12", color: crimePalette[3] },
+          { min: 12, max: 18, label: "12 to 18", color: crimePalette[4] },
+          { min: 18, max: 25, label: "18 to 25", color: crimePalette[5] },
+          { min: 25, max: Number.POSITIVE_INFINITY, label: "25+", color: crimePalette[6] }
+        ]
+      },
+      retail_theft: {
+        label: "Retail-Theft-Related",
+        title: "Layer 8 — Retail-Theft-Related Incidents",
+        subtitle: "Shoplifting and retail-theft-related complaint incidents by tract",
+        legendText: "Each tract is colored by retail-theft-related complaint count using NYC Open Data incident records.",
+        readText: "Retail-theft-related incidents are identified primarily through shoplifting-style offense detail in the NYPD complaint records.",
+        bins: [
+          { min: 0, max: 1, label: "0", color: crimePalette[0] },
+          { min: 1, max: 3, label: "1 to 3", color: crimePalette[1] },
+          { min: 3, max: 5, label: "3 to 5", color: crimePalette[2] },
+          { min: 5, max: 8, label: "5 to 8", color: crimePalette[3] },
+          { min: 8, max: 12, label: "8 to 12", color: crimePalette[4] },
+          { min: 12, max: 18, label: "12 to 18", color: crimePalette[5] },
+          { min: 18, max: Number.POSITIVE_INFINITY, label: "18+", color: crimePalette[6] }
+        ]
+      }
+    };
+
+    const mapLayerConfigs = {
+      predominant_ethnicity: {
+        title: "Layer 2 — Predominant Ethnicity",
+        subtitle: "Tracts in the selected trade area",
+        mode: "predominant"
+      },
+      hispanic_percentage: {
+        title: "Layer 5 — Hispanic Population Percentage",
+        subtitle: "Percent Hispanic / Latino by tract in the selected trade area",
+        mode: "percentage",
+        variableId: "DP05_0090E",
+        label: "Hispanic population band",
+        shareLabel: "Hispanic share"
+      },
+      black_percentage: {
+        title: "Layer — Black Population Percentage",
+        subtitle: "Percent Black / African American by tract in the selected trade area",
+        mode: "percentage",
+        variableId: "DP05_0045E",
+        label: "Black population band",
+        shareLabel: "Black share"
+      },
+      white_percentage: {
+        title: "Layer — White Population Percentage",
+        subtitle: "Percent White by tract in the selected trade area",
+        mode: "percentage",
+        variableId: "DP05_0037E",
+        label: "White population band",
+        shareLabel: "White share"
+      },
+      asian_percentage: {
+        title: "Layer — Asian Population Percentage",
+        subtitle: "Percent Asian by tract in the selected trade area",
+        mode: "percentage",
+        variableId: "DP05_0061E",
+        label: "Asian population band",
+        shareLabel: "Asian share"
+      },
+      crime_incidents: {
+        title: "Layer 8 — NYC Crime Incidents (YTD)",
+        subtitle: "NYPD complaint incidents aggregated to tracts in the selected trade area",
+        mode: "crime",
+        label: "Incident count band",
+        shareLabel: "Incidents"
+      }
+    };
 
     const schoolComparableCategories = [
       { id: "hispanic", label: "Hispanic", color: "#d17a22", variableIds: ["B03002_012E"] },
@@ -2674,6 +3079,25 @@
     const comparisonStatusEl = document.querySelector("#comparison-status");
     const comparisonSummaryGridEl = document.querySelector("#comparison-summary-grid");
     const comparisonTableWrapEl = document.querySelector("#comparison-table-wrap");
+    const predominantMapEl = document.querySelector("#predominant-map");
+    const predominantMapFallbackEl = document.querySelector("#predominant-map-fallback");
+    const predominantMapLegendEl = document.querySelector("#predominant-map-legend");
+    const mapLayerSelectEl = document.querySelector("#map-layer-select");
+    const mapLayerTitleEl = document.querySelector("#map-layer-title");
+    const mapLayerSubtitleEl = document.querySelector("#map-layer-subtitle");
+    const mapPageAddressEl = document.querySelector("#map-page-address");
+    const mapPageRadiusEl = document.querySelector("#map-page-radius");
+    const mapPageTractsEl = document.querySelector("#map-page-tracts");
+    const crimeMapEl = document.querySelector("#crime-map");
+    const crimeMapFallbackEl = document.querySelector("#crime-map-fallback");
+    const crimeMapLegendEl = document.querySelector("#crime-map-legend");
+    const crimeLayerSelectEl = document.querySelector("#crime-layer-select");
+    const crimeMapTitleEl = document.querySelector("#crime-map-title");
+    const crimeMapSubtitleEl = document.querySelector("#crime-map-subtitle");
+    const crimeMapAddressEl = document.querySelector("#crime-map-address");
+    const crimeMapRadiusEl = document.querySelector("#crime-map-radius");
+    const crimeMapTractsEl = document.querySelector("#crime-map-tracts");
+    const crimeMapTotalEl = document.querySelector("#crime-map-total");
     const primaryCategoryEl = document.querySelector("#primary-category");
     const secondaryCategoryEl = document.querySelector("#secondary-category");
     const openContactModalEl = document.querySelector("#open-contact-modal");
@@ -2764,6 +3188,14 @@
     const schoolComparisonListEl = document.querySelector("#school-comparison-list");
     let googleMapsPromise = null;
     let googleMap = null;
+    let predominantMap = null;
+    let predominantMapInfoWindow = null;
+    let predominantAddressMarker = null;
+    let predominantRadiusCircle = null;
+    let crimeMap = null;
+    let crimeMapInfoWindow = null;
+    let crimeAddressMarker = null;
+    let crimeRadiusCircle = null;
     let restaurantMarkers = [];
     let chainMarkers = [];
     let mtaMarkers = [];
@@ -2779,7 +3211,17 @@
     let currentSchools = [];
     let currentAcsValues = null;
     let currentRadius = null;
+    let currentMatch = null;
+    let currentNearbyTracts = [];
+    let currentCenterCoordinates = null;
+    let currentDetailedTractRows = [];
+    let currentCrimeTractData = [];
+    let currentCrimeCacheKey = "";
+    let currentCrimeIncidentRows = [];
+    let currentCrimeIncidentRowsCacheKey = "";
     let currentScore = null;
+    let currentMapLayer = "predominant_ethnicity";
+    let currentCrimeView = "total";
     let currentInsightContext = null;
     let currentRestaurantPage = 1;
     let currentPoiPage = 1;
@@ -2836,6 +3278,10 @@
         tabEl.classList.toggle("active", isActive);
         tabEl.setAttribute("aria-current", isActive ? "page" : "false");
       });
+      if (pageName === "map") {
+        renderPredominantEthnicityMapPage();
+        renderCrimeMapPage();
+      }
     }
 
     function createComparisonAddressRow(value = "") {
@@ -2938,8 +3384,13 @@
     async function runComparison() {
       const addresses = getComparisonAddresses();
       const radius = Number(comparisonRadiusInput.value);
+      const censusApiKey = (censusApiKeyInput.value || "").trim();
       if (!addresses.length) {
         setComparisonStatus("Add at least one address to compare.", true);
+        return;
+      }
+      if (!censusApiKey) {
+        setComparisonStatus("Census API key is missing.", true);
         return;
       }
 
@@ -2959,7 +3410,7 @@
           }
           const center = getCoordinates(match);
           const nearbyTracts = await fetchNearbyTracts(center, radius, tract);
-          const acs = await fetchAcsDataForTracts(nearbyTracts);
+          const acs = await fetchAcsDataForTracts(nearbyTracts, censusApiKey);
           results.push({
             inputAddress: address,
             matchedAddress: match.matchedAddress || address,
@@ -3017,6 +3468,14 @@
     });
     comparisonRunButtonEl.addEventListener("click", () => {
       runComparison();
+    });
+    mapLayerSelectEl.addEventListener("change", () => {
+      currentMapLayer = mapLayerSelectEl.value || "predominant_ethnicity";
+      renderPredominantEthnicityMapPage();
+    });
+    crimeLayerSelectEl.addEventListener("change", () => {
+      currentCrimeView = crimeLayerSelectEl.value || "total";
+      renderCrimeMapPage();
     });
     censusApiKeyInput.addEventListener("input", () => {
       try {
@@ -3329,17 +3788,29 @@
     async function fetchJsonWithRetry(url, sourceLabel, options = {}) {
       const retries = Number.isFinite(options.retries) ? options.retries : 0;
       const retryDelayMs = Number.isFinite(options.retryDelayMs) ? options.retryDelayMs : 1200;
+      const timeoutMs = Number.isFinite(options.timeoutMs) ? options.timeoutMs : 15000;
       let lastError = null;
 
       for (let attempt = 0; attempt <= retries; attempt += 1) {
+        let timeoutId = null;
         try {
-          const response = await fetch(url);
+          const controller = new AbortController();
+          timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+          const response = await fetch(url, { signal: controller.signal });
+          window.clearTimeout(timeoutId);
           if (!response.ok) {
             throw new Error(`${sourceLabel} returned ${response.status}.`);
           }
           return await parseJsonResponse(response, sourceLabel);
         } catch (error) {
-          lastError = error;
+          if (timeoutId !== null) {
+            window.clearTimeout(timeoutId);
+          }
+          if (error?.name === "AbortError") {
+            lastError = new Error(`${sourceLabel} timed out after ${Math.round(timeoutMs / 1000)} seconds.`);
+          } else {
+            lastError = error;
+          }
           if (attempt < retries) {
             setStatus(`${sourceLabel} is temporarily unavailable. Retrying...`);
             await delay(retryDelayMs);
@@ -3522,6 +3993,7 @@
     }
 
     async function fetchAcsDataForTracts(tracts, censusApiKey) {
+      setStatus(`Pulling ACS data for ${tracts.length} tract${tracts.length === 1 ? "" : "s"}...`);
       const [profileRows, comparableRows] = await Promise.all([
         fetchDatasetRowsForTracts(ACS_DATASET, [...acsMetricVariableIds, ...supportVariableIds], tracts, censusApiKey),
         fetchDatasetRowsForTracts(ACS_BASE_DATASET, schoolComparableVariableIds, tracts, censusApiKey)
@@ -3533,7 +4005,8 @@
 
       return {
         values: aggregateAcsRows(profileRows, comparableRows),
-        tractCount: profileRows.length
+        tractCount: profileRows.length,
+        profileRows
       };
     }
 
@@ -3545,11 +4018,12 @@
         tracts.map((tract) => [`${tract.state}${tract.county}${tract.tract}`, tract.overlapShare ?? 1])
       );
 
-      await Promise.all(Array.from(groups.entries()).map(async ([key, group]) => {
+      await Promise.all(Array.from(groups.entries()).map(async ([key, group], countyIndex) => {
         const [state, county] = key.split("-");
         const keyQuery = censusApiKey ? `&key=${encodeURIComponent(censusApiKey)}` : "";
         const url = `${datasetUrl}?get=${encodeURIComponent(get)}&for=tract:*&in=state:${state}%20county:${county}${keyQuery}`;
-        const countyRows = await fetchJsonWithRetry(url, "ACS API", { retries: 1, retryDelayMs: 1500 });
+        setStatus(`Pulling ACS county slice ${countyIndex + 1} of ${groups.size}...`);
+        const countyRows = await fetchJsonWithRetry(url, "ACS API", { retries: 1, retryDelayMs: 1500, timeoutMs: 15000 });
         if (!Array.isArray(countyRows) || countyRows.length < 2) return;
 
         const headers = countyRows[0];
@@ -4293,6 +4767,10 @@
       renderAgeList(values._age || [], toNumber(values.DP05_0018E));
       renderRaceList(values._race || []);
       updateRevenueEstimate();
+      currentMatch = match;
+      currentNearbyTracts = nearbyTracts;
+      currentCenterCoordinates = coordinates;
+      currentDetailedTractRows = Array.isArray(acs.profileRows) ? acs.profileRows : [];
       currentAcsValues = values;
       currentRadius = radius;
       if (googleApiKey) {
@@ -4314,6 +4792,8 @@
       }
 
       renderLocationQuality();
+      renderPredominantEthnicityMapPage();
+      renderCrimeMapPage();
 
       metricsEl.innerHTML = variables.map((variable) => {
         const raw = toNumber(values[variable.id]);
@@ -4951,6 +5431,7 @@
         if (!bounds.isEmpty()) {
           googleMap.fitBounds(bounds, 28);
         }
+        fitMapToRadiusCoverage(googleMap, centerLatLng, radius, 0.8);
         return { restaurants, schools };
       } catch (error) {
         console.error(error);
@@ -5058,6 +5539,603 @@
           bounds.extend({ lat: point[1], lng: point[0] });
         });
       });
+    }
+
+    function renderPredominantEthnicityLegend() {
+      if (mapLayerConfigs[currentMapLayer]?.mode === "crime") {
+        predominantMapLegendEl.innerHTML = crimeViewConfigs.total.bins.map((bin) => `
+          <div class="legend-row">
+            <span class="legend-swatch" style="background:${escapeHtml(bin.color)};"></span>
+            <span>${escapeHtml(bin.label)}</span>
+          </div>
+        `).join("") + `
+          <div class="legend-row">
+            <span class="legend-swatch" style="background:#d9dde3;"></span>
+            <span>No data</span>
+          </div>
+        `;
+        return;
+      }
+      if (mapLayerConfigs[currentMapLayer]?.mode === "percentage") {
+        predominantMapLegendEl.innerHTML = hispanicPercentageBins.map((bin) => `
+          <div class="legend-row">
+            <span class="legend-swatch" style="background:${escapeHtml(bin.color)};"></span>
+            <span>${escapeHtml(bin.label)}</span>
+          </div>
+        `).join("") + `
+          <div class="legend-row">
+            <span class="legend-swatch" style="background:#d9dde3;"></span>
+            <span>No data</span>
+          </div>
+        `;
+        return;
+      }
+
+      predominantMapLegendEl.innerHTML = predominantEthnicityCategories.map((category) => `
+        <div class="legend-row">
+          <span class="legend-swatch" style="background:${escapeHtml(category.color)};"></span>
+          <span>${escapeHtml(category.label)}</span>
+        </div>
+      `).join("") + `
+        <div class="legend-row">
+          <span class="legend-swatch" style="background:#d9dde3;"></span>
+          <span>No data</span>
+        </div>
+      `;
+    }
+
+    function getMapLayerReadText() {
+      const layerConfig = mapLayerConfigs[currentMapLayer] || mapLayerConfigs.predominant_ethnicity;
+      if (layerConfig.mode === "crime") {
+        return {
+          legendText: "Each tract is colored by the number of NYPD complaint incidents inside that tract based on the current-year NYC open data feed.",
+          readText: "This layer aggregates current-year NYPD complaint incidents into the tracts intersecting your selected radius. It is an incident-count view, not a modeled crime index like AGS CrimeRisk."
+        };
+      }
+      if (layerConfig.mode === "percentage") {
+        return {
+          legendText: "Each tract is colored by the selected population share using tract-level ACS values.",
+          readText: "This map uses the tracts intersecting your selected radius. The radius is shown as a circle around the matched address, while tract color comes from the selected demographic share within each tract."
+        };
+      }
+      return {
+        legendText: "Each tract is colored by the largest demographic group using tract-level ACS values.",
+        readText: "This map uses the tracts intersecting your selected radius. The radius is shown as a circle around the matched address, while tract color comes from each tract’s predominant group rather than the area-wide aggregate."
+      };
+    }
+
+    function fitMapToRadiusCoverage(mapInstance, centerLatLng, radiusMiles, coverage = 0.8) {
+      if (!mapInstance || !centerLatLng || !Number.isFinite(radiusMiles) || radiusMiles <= 0) return;
+      const mapDiv = mapInstance.getDiv?.();
+      const width = mapDiv?.clientWidth || 0;
+      const height = mapDiv?.clientHeight || 0;
+      if (!width || !height) return;
+
+      const radiusMeters = milesToMeters(radiusMiles);
+      const minDimension = Math.max(1, Math.min(width, height));
+      const desiredPixelRadius = (minDimension * coverage) / 2;
+      const latitude = Number(centerLatLng.lat) || 0;
+      const metersPerPixelAtZoom0 = 156543.03392 * Math.cos((latitude * Math.PI) / 180);
+      const desiredMetersPerPixel = radiusMeters / Math.max(desiredPixelRadius, 1);
+      const zoom = Math.log2(metersPerPixelAtZoom0 / desiredMetersPerPixel);
+      if (Number.isFinite(zoom)) {
+        mapInstance.setCenter(centerLatLng);
+        mapInstance.setZoom(clamp(zoom, 9, 18));
+      }
+    }
+
+    function getTractRowGeoid(row) {
+      return row?.state && row?.county && row?.tract
+        ? `${row.state}${row.county}${row.tract}`
+        : null;
+    }
+
+    function getPredominantEthnicityDescriptor(row) {
+      if (!row) {
+        return { label: "No data", color: "#d9dde3", value: null, share: null };
+      }
+      const population = toNumber(row.DP05_0001E);
+      const candidates = predominantEthnicityCategories.map((category) => ({
+        ...category,
+        value: toNumber(row[category.id])
+      })).filter((item) => Number.isFinite(item.value) && item.value >= 0);
+
+      if (!candidates.length) {
+        return { label: "No data", color: "#d9dde3", value: null, share: null };
+      }
+
+      const winner = candidates.reduce((best, item) => {
+        if (!best || item.value > best.value) return item;
+        return best;
+      }, null);
+
+      return {
+        label: winner.label,
+        color: winner.color,
+        value: winner.value,
+        share: population ? clamp((winner.value / population) * 100, 0, 100) : null
+      };
+    }
+
+    function getPercentageLayerDescriptor(row, variableId) {
+      if (!row) {
+        return { label: "No data", color: "#d9dde3", value: null, share: null };
+      }
+      const population = toNumber(row.DP05_0001E);
+      const count = toNumber(row[variableId]);
+      const share = population && Number.isFinite(count)
+        ? clamp((count / population) * 100, 0, 100)
+        : null;
+      if (!Number.isFinite(share)) {
+        return { label: "No data", color: "#d9dde3", value: null, share: null };
+      }
+      const bin = hispanicPercentageBins.find((item) => share >= item.min && share < item.max) || hispanicPercentageBins[hispanicPercentageBins.length - 1];
+      return {
+        label: bin.label,
+        color: bin.color,
+        value: count,
+        share
+      };
+    }
+
+    function getCrimeBins(viewKey = "total") {
+      return (crimeViewConfigs[viewKey] || crimeViewConfigs.total).bins;
+    }
+
+    function getCrimeDescriptor(count, viewKey = "total") {
+      if (!Number.isFinite(count)) {
+        return { label: "No data", color: "#d9dde3", value: null, share: null };
+      }
+      const bins = getCrimeBins(viewKey);
+      const bin = bins.find((item) => count >= item.min && count < item.max) || bins[bins.length - 1];
+      return {
+        label: bin.label,
+        color: bin.color,
+        value: count,
+        share: count
+      };
+    }
+
+    function getCrimeCacheKey(tracts, radius) {
+      return JSON.stringify({
+        radius: Number(radius || 0).toFixed(2),
+        tracts: tracts.map((tract) => tract.geoid).sort()
+      });
+    }
+
+    function ringsToXY(rings) {
+      return (rings || []).map((ring) => ring.map(([x, y]) => ({ x: Number(x), y: Number(y) })));
+    }
+
+    function pointInTractGeometry(lng, lat, geometry) {
+      const rings = ringsToXY(geometry?.rings || []);
+      if (!rings.length) return false;
+      return pointInRings({ x: Number(lng), y: Number(lat) }, rings);
+    }
+
+    async function fetchCrimeIncidentsForCurrentAreaRaw() {
+      if (!currentNearbyTracts.length) return [];
+      const cacheKey = getCrimeCacheKey(currentNearbyTracts, currentRadius);
+      if (currentCrimeIncidentRowsCacheKey === cacheKey && currentCrimeIncidentRows.length) {
+        return currentCrimeIncidentRows;
+      }
+
+      const allPoints = currentNearbyTracts.flatMap((tract) => tract.geometry?.rings || []).flat();
+      const longitudes = allPoints.map((point) => Number(point[0])).filter(Number.isFinite);
+      const latitudes = allPoints.map((point) => Number(point[1])).filter(Number.isFinite);
+      if (!longitudes.length || !latitudes.length) return [];
+
+      const minLng = Math.min(...longitudes);
+      const maxLng = Math.max(...longitudes);
+      const minLat = Math.min(...latitudes);
+      const maxLat = Math.max(...latitudes);
+
+      const where = [
+        "latitude IS NOT NULL",
+        "longitude IS NOT NULL",
+        `latitude >= ${minLat}`,
+        `latitude <= ${maxLat}`,
+        `longitude >= ${minLng}`,
+        `longitude <= ${maxLng}`
+      ].join(" AND ");
+      const params = new URLSearchParams({
+        $select: "cmplnt_num,latitude,longitude,ofns_desc,pd_desc,law_cat_cd,prem_typ_desc",
+        $where: where,
+        $limit: "50000"
+      });
+      const rows = await fetchJsonWithRetry(`${NYC_CRIME_YTD_DATASET}?${params.toString()}`, "NYC Crime API", { retries: 1, retryDelayMs: 1200 });
+      const enrichedRows = [];
+      (Array.isArray(rows) ? rows : []).forEach((row) => {
+        const lng = Number(row.longitude);
+        const lat = Number(row.latitude);
+        if (!Number.isFinite(lng) || !Number.isFinite(lat)) return;
+        const match = currentNearbyTracts.find((tract) => pointInTractGeometry(lng, lat, tract.geometry));
+        if (!match) return;
+        enrichedRows.push({
+          geoid: match.geoid,
+          longitude: lng,
+          latitude: lat,
+          cmplnt_num: row.cmplnt_num,
+          ofns_desc: row.ofns_desc,
+          pd_desc: row.pd_desc,
+          law_cat_cd: row.law_cat_cd,
+          prem_typ_desc: row.prem_typ_desc
+        });
+      });
+
+      currentCrimeIncidentRowsCacheKey = cacheKey;
+      currentCrimeIncidentRows = enrichedRows;
+      return currentCrimeIncidentRows;
+    }
+
+    function normalizedCrimeText(value) {
+      return String(value || "").trim().toUpperCase();
+    }
+
+    function matchesCrimeView(row, viewKey = "total") {
+      if (!row) return false;
+      if (viewKey === "total") return true;
+      const offense = normalizedCrimeText(row.ofns_desc);
+      const detail = normalizedCrimeText(row.pd_desc);
+
+      if (viewKey === "robbery") return offense === "ROBBERY";
+      if (viewKey === "burglary") return offense === "BURGLARY";
+      if (viewKey === "assault") {
+        return offense === "FELONY ASSAULT" || offense === "ASSAULT 3 & RELATED OFFENSES";
+      }
+      if (viewKey === "retail_theft") {
+        return detail.includes("SHOPLIFTING");
+      }
+      if (viewKey === "violent") {
+        return [
+          "MURDER & NON-NEGL. MANSLAUGHTER",
+          "RAPE",
+          "ROBBERY",
+          "FELONY ASSAULT",
+          "ASSAULT 3 & RELATED OFFENSES"
+        ].includes(offense);
+      }
+      if (viewKey === "property") {
+        return [
+          "BURGLARY",
+          "GRAND LARCENY",
+          "PETIT LARCENY",
+          "GRAND LARCENY OF MOTOR VEHICLE",
+          "POSSESSION OF STOLEN PROPERTY",
+          "CRIMINAL MISCHIEF & RELATED OFENSES",
+          "ARSON"
+        ].includes(offense) || detail.includes("SHOPLIFTING");
+      }
+      return true;
+    }
+
+    function aggregateCrimeCountsByTract(crimeRows, viewKey = "total") {
+      const counts = new Map(currentNearbyTracts.map((tract) => [tract.geoid, 0]));
+      let totalCount = 0;
+      (crimeRows || []).forEach((row) => {
+        if (!matchesCrimeView(row, viewKey)) return;
+        if (!counts.has(row.geoid)) return;
+        counts.set(row.geoid, (counts.get(row.geoid) || 0) + 1);
+        totalCount += 1;
+      });
+      return {
+        totalCount,
+        rows: currentNearbyTracts.map((tract) => ({
+          geoid: tract.geoid,
+          count: counts.get(tract.geoid) || 0
+        }))
+      };
+    }
+
+    async function fetchCrimeIncidentsForCurrentArea() {
+      const rawRows = await fetchCrimeIncidentsForCurrentAreaRaw();
+      const aggregated = aggregateCrimeCountsByTract(rawRows, "total");
+      currentCrimeCacheKey = getCrimeCacheKey(currentNearbyTracts, currentRadius);
+      currentCrimeTractData = aggregated.rows;
+      return currentCrimeTractData;
+    }
+
+    function buildPredominantEthnicityFeatures(tracts, profileRows) {
+      const rowsByGeoid = new Map((profileRows || []).map((row) => [getTractRowGeoid(row), row]));
+      return tracts.flatMap((tract) => {
+        const layerConfig = mapLayerConfigs[currentMapLayer] || mapLayerConfigs.predominant_ethnicity;
+        const descriptor = layerConfig.mode === "percentage"
+          ? getPercentageLayerDescriptor(rowsByGeoid.get(tract.geoid), layerConfig.variableId)
+          : getPredominantEthnicityDescriptor(rowsByGeoid.get(tract.geoid));
+        return esriRingsToGeoJsonFeatures(tract).map((feature) => ({
+          ...feature,
+          properties: {
+            ...feature.properties,
+            predominantLabel: descriptor.label,
+            predominantColor: descriptor.color,
+            predominantShare: descriptor.share
+          }
+        }));
+      });
+    }
+
+    function buildCrimeFeatures(tracts, crimeRows, viewKey = "total") {
+      const rowsByGeoid = new Map((crimeRows || []).map((row) => [row.geoid, row]));
+      return tracts.flatMap((tract) => {
+        const descriptor = getCrimeDescriptor(rowsByGeoid.get(tract.geoid)?.count, viewKey);
+        return esriRingsToGeoJsonFeatures(tract).map((feature) => ({
+          ...feature,
+          properties: {
+            ...feature.properties,
+            predominantLabel: descriptor.label,
+            predominantColor: descriptor.color,
+            predominantShare: descriptor.share
+          }
+        }));
+      });
+    }
+
+    async function renderPredominantEthnicityMapPage() {
+      const layerConfig = mapLayerConfigs[currentMapLayer] || mapLayerConfigs.predominant_ethnicity;
+      mapLayerTitleEl.textContent = layerConfig.title;
+      mapLayerSubtitleEl.textContent = layerConfig.subtitle;
+      renderPredominantEthnicityLegend();
+      mapPageAddressEl.textContent = currentMatch?.matchedAddress || "-";
+      mapPageRadiusEl.textContent = currentRadius === null ? "-" : `${currentRadius.toFixed(1)} mi`;
+      mapPageTractsEl.textContent = currentNearbyTracts.length ? `${currentNearbyTracts.length}` : "-";
+
+      if (!currentNearbyTracts.length || !currentCenterCoordinates) {
+        predominantMapEl.style.display = "none";
+        predominantMapFallbackEl.style.display = "grid";
+        predominantMapFallbackEl.textContent = "Score an address on the Site Analysis page to build the tract map.";
+        return;
+      }
+
+      const apiKey = (googleApiKeyInput.value || "").trim();
+      if (!apiKey) {
+        predominantMapEl.style.display = "none";
+        predominantMapFallbackEl.style.display = "grid";
+        predominantMapFallbackEl.textContent = "Google Maps API key is unavailable, so the map page cannot render the choropleth.";
+        return;
+      }
+
+      try {
+        await loadGoogleMaps(apiKey);
+        predominantMapFallbackEl.style.display = "none";
+        predominantMapEl.style.display = "block";
+
+        const centerLatLng = {
+          lat: Number(currentCenterCoordinates.y),
+          lng: Number(currentCenterCoordinates.x)
+        };
+
+        if (!predominantMap) {
+          predominantMap = new google.maps.Map(predominantMapEl, {
+            center: centerLatLng,
+            zoom: 13,
+            mapTypeControl: false,
+            streetViewControl: false,
+            fullscreenControl: true
+          });
+          predominantMapInfoWindow = new google.maps.InfoWindow();
+          predominantMap.data.addListener("click", (event) => {
+            const activeLayerConfig = mapLayerConfigs[currentMapLayer] || mapLayerConfigs.predominant_ethnicity;
+            const name = event.feature.getProperty("name") || "Census tract";
+            const label = event.feature.getProperty("predominantLabel") || "No data";
+            const share = event.feature.getProperty("predominantShare");
+            const detailLabel = activeLayerConfig.mode === "percentage"
+              ? activeLayerConfig.label
+              : activeLayerConfig.mode === "crime"
+                ? activeLayerConfig.label
+                : "Predominant group";
+            const detailValue = Number.isFinite(share)
+              ? activeLayerConfig.mode === "crime"
+                ? `${Math.round(share)}`
+                : `${share.toFixed(1)}%`
+              : "No data";
+            const shareLabel = activeLayerConfig.mode === "percentage"
+              ? activeLayerConfig.shareLabel
+              : activeLayerConfig.mode === "crime"
+                ? activeLayerConfig.shareLabel
+                : "Share";
+            predominantMapInfoWindow.setContent(`
+              <div style="min-width:180px; line-height:1.5;">
+                <div style="font-weight:700; color:#17202a;">${escapeHtml(String(name))}</div>
+                <div style="color:#475467;">${escapeHtml(detailLabel)}: ${escapeHtml(String(label))}</div>
+                <div style="color:#475467;">${escapeHtml(shareLabel)}: ${escapeHtml(detailValue)}</div>
+              </div>
+            `);
+            predominantMapInfoWindow.setPosition(event.latLng);
+            predominantMapInfoWindow.open(predominantMap);
+          });
+        }
+
+        predominantMap.setCenter(centerLatLng);
+        predominantMap.data.forEach((feature) => predominantMap.data.remove(feature));
+        const features = layerConfig.mode === "crime"
+          ? buildCrimeFeatures(currentNearbyTracts, await fetchCrimeIncidentsForCurrentArea())
+          : buildPredominantEthnicityFeatures(currentNearbyTracts, currentDetailedTractRows);
+        predominantMap.data.addGeoJson({
+          type: "FeatureCollection",
+          features
+        });
+        predominantMap.data.setStyle((feature) => ({
+          fillColor: feature.getProperty("predominantColor") || "#d7dde8",
+          fillOpacity: 0.62,
+          strokeColor: "#ffffff",
+          strokeOpacity: 0.85,
+          strokeWeight: 1
+        }));
+
+        if (predominantAddressMarker) predominantAddressMarker.setMap(null);
+        predominantAddressMarker = new google.maps.Marker({
+          position: centerLatLng,
+          map: predominantMap,
+          title: currentMatch?.matchedAddress || "Selected address",
+          icon: markerEmojiIcon("#17202a", "#ffffff", "📍")
+        });
+
+        if (predominantRadiusCircle) predominantRadiusCircle.setMap(null);
+        predominantRadiusCircle = new google.maps.Circle({
+          center: centerLatLng,
+          radius: milesToMeters(currentRadius || 0),
+          map: predominantMap,
+          fillColor: "#1f8a5b",
+          fillOpacity: 0.04,
+          strokeColor: "#17202a",
+          strokeOpacity: 0.9,
+          strokeWeight: 2
+        });
+
+        const bounds = new google.maps.LatLngBounds();
+        currentNearbyTracts.forEach((tract) => {
+          (tract.geometry?.rings || []).flat().forEach((point) => {
+            bounds.extend({ lat: point[1], lng: point[0] });
+          });
+        });
+        if (Number.isFinite(centerLatLng.lat) && Number.isFinite(centerLatLng.lng)) {
+          bounds.extend(centerLatLng);
+        }
+        if (!bounds.isEmpty()) {
+          predominantMap.fitBounds(bounds, 16);
+        }
+        fitMapToRadiusCoverage(predominantMap, centerLatLng, currentRadius || 0, 0.8);
+        const mapLayerRead = getMapLayerReadText();
+        const legendCardText = document.querySelector("#map-page-legend-copy");
+        const readCardText = document.querySelector("#map-page-read-copy");
+        if (legendCardText) legendCardText.textContent = mapLayerRead.legendText;
+        if (readCardText) readCardText.textContent = mapLayerRead.readText;
+      } catch (error) {
+        console.error(error);
+        predominantMapEl.style.display = "none";
+        predominantMapFallbackEl.style.display = "grid";
+        predominantMapFallbackEl.textContent = error.message || "The predominant ethnicity map could not be rendered.";
+      }
+    }
+
+    function renderCrimeLegend() {
+      const bins = getCrimeBins(currentCrimeView);
+      crimeMapLegendEl.innerHTML = bins.map((bin) => `
+        <div class="legend-row">
+          <span class="legend-swatch" style="background:${escapeHtml(bin.color)};"></span>
+          <span>${escapeHtml(bin.label)}</span>
+        </div>
+      `).join("") + `
+        <div class="legend-row">
+          <span class="legend-swatch" style="background:#d9dde3;"></span>
+          <span>No data</span>
+        </div>
+      `;
+    }
+
+    async function renderCrimeMapPage() {
+      const viewConfig = crimeViewConfigs[currentCrimeView] || crimeViewConfigs.total;
+      crimeMapTitleEl.textContent = viewConfig.title;
+      crimeMapSubtitleEl.textContent = viewConfig.subtitle;
+      crimeMapAddressEl.textContent = currentMatch?.matchedAddress || "-";
+      crimeMapRadiusEl.textContent = currentRadius === null ? "-" : `${currentRadius.toFixed(1)} mi`;
+      crimeMapTractsEl.textContent = currentNearbyTracts.length ? `${currentNearbyTracts.length}` : "-";
+      const crimeLegendCopyEl = document.querySelector("#crime-map-legend-copy");
+      const crimeReadCopyEl = document.querySelector("#crime-map-read-copy");
+      const crimeUpdateNoteEl = document.querySelector("#crime-map-update-note");
+      if (crimeLegendCopyEl) crimeLegendCopyEl.textContent = viewConfig.legendText;
+      if (crimeReadCopyEl) crimeReadCopyEl.textContent = viewConfig.readText;
+      if (crimeUpdateNoteEl) crimeUpdateNoteEl.textContent = NYC_CRIME_UPDATE_NOTE;
+      renderCrimeLegend();
+
+      if (!currentNearbyTracts.length || !currentCenterCoordinates) {
+        crimeMapEl.style.display = "none";
+        crimeMapFallbackEl.style.display = "grid";
+        crimeMapFallbackEl.textContent = "Score an address on the Site Analysis page to build the crime map.";
+        crimeMapTotalEl.textContent = "-";
+        return;
+      }
+
+      const apiKey = (googleApiKeyInput.value || "").trim();
+      if (!apiKey) {
+        crimeMapEl.style.display = "none";
+        crimeMapFallbackEl.style.display = "grid";
+        crimeMapFallbackEl.textContent = "Google Maps API key is unavailable, so the crime map cannot render.";
+        crimeMapTotalEl.textContent = "-";
+        return;
+      }
+
+      try {
+        await loadGoogleMaps(apiKey);
+        crimeMapFallbackEl.style.display = "none";
+        crimeMapEl.style.display = "block";
+
+        const centerLatLng = {
+          lat: Number(currentCenterCoordinates.y),
+          lng: Number(currentCenterCoordinates.x)
+        };
+        const rawCrimeRows = await fetchCrimeIncidentsForCurrentAreaRaw();
+        const aggregated = aggregateCrimeCountsByTract(rawCrimeRows, currentCrimeView);
+        crimeMapTotalEl.textContent = formatValue(aggregated.totalCount, "number");
+
+        if (!crimeMap) {
+          crimeMap = new google.maps.Map(crimeMapEl, {
+            center: centerLatLng,
+            zoom: 13,
+            mapTypeControl: false,
+            streetViewControl: false,
+            fullscreenControl: true
+          });
+          crimeMapInfoWindow = new google.maps.InfoWindow();
+          crimeMap.data.addListener("click", (event) => {
+            const name = event.feature.getProperty("name") || "Census tract";
+            const label = event.feature.getProperty("predominantLabel") || "No data";
+            const count = event.feature.getProperty("predominantShare");
+            const activeCrimeConfig = crimeViewConfigs[currentCrimeView] || crimeViewConfigs.total;
+            crimeMapInfoWindow.setContent(`
+              <div style="min-width:190px; line-height:1.5;">
+                <div style="font-weight:700; color:#17202a;">${escapeHtml(String(name))}</div>
+                <div style="color:#475467;">${escapeHtml(activeCrimeConfig.label)} band: ${escapeHtml(String(label))}</div>
+                <div style="color:#475467;">Incidents: ${escapeHtml(Number.isFinite(count) ? formatValue(Math.round(count), "number") : "No data")}</div>
+              </div>
+            `);
+            crimeMapInfoWindow.setPosition(event.latLng);
+            crimeMapInfoWindow.open(crimeMap);
+          });
+        }
+
+        crimeMap.setCenter(centerLatLng);
+        crimeMap.data.forEach((feature) => crimeMap.data.remove(feature));
+        crimeMap.data.addGeoJson({
+          type: "FeatureCollection",
+          features: buildCrimeFeatures(currentNearbyTracts, aggregated.rows, currentCrimeView)
+        });
+        crimeMap.data.setStyle((feature) => ({
+          fillColor: feature.getProperty("predominantColor") || "#d7dde8",
+          fillOpacity: 0.66,
+          strokeColor: "#ffffff",
+          strokeOpacity: 0.88,
+          strokeWeight: 1
+        }));
+
+        if (crimeAddressMarker) crimeAddressMarker.setMap(null);
+        crimeAddressMarker = new google.maps.Marker({
+          position: centerLatLng,
+          map: crimeMap,
+          title: currentMatch?.matchedAddress || "Selected address",
+          icon: markerEmojiIcon("#17202a", "#ffffff", "📍")
+        });
+
+        if (crimeRadiusCircle) crimeRadiusCircle.setMap(null);
+        crimeRadiusCircle = new google.maps.Circle({
+          center: centerLatLng,
+          radius: milesToMeters(currentRadius || 0),
+          map: crimeMap,
+          fillColor: "#1f8a5b",
+          fillOpacity: 0.04,
+          strokeColor: "#17202a",
+          strokeOpacity: 0.9,
+          strokeWeight: 2
+        });
+
+        fitMapToRadiusCoverage(crimeMap, centerLatLng, currentRadius || 0, 0.8);
+      } catch (error) {
+        console.error(error);
+        crimeMapEl.style.display = "none";
+        crimeMapFallbackEl.style.display = "grid";
+        crimeMapFallbackEl.textContent = error.message || "The crime map could not be rendered.";
+        crimeMapTotalEl.textContent = "-";
+      }
     }
 
     function esriRingsToGeoJsonFeatures(tract) {
